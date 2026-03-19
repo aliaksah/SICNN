@@ -1,8 +1,20 @@
 library(torch)
 
 #' @title Train an instance of \code{LBBNN_Net}.
-#' @description Function that for each epoch iterates through each mini-batch, computing
+#' @description
+#' Function that for each epoch iterates through each mini-batch, computing
 #' the loss and using back-propagation to update the network parameters.
+#'
+#' By default, \code{train_LBBNN} uses the original variational Bayes objective:
+#' the data-fit loss plus the KL-divergence term from \code{LBBNN$kl_div()}.
+#' Alternatively, setting \code{criterion = "SIC"} replaces the KL term with the
+#' smooth BIC-type penalty of O’Neill and Burke (2023), i.e.
+#' \deqn{ -\ell(\theta) + \tfrac{1}{2}\log(n_\mathrm{train}) \|\theta\|_{0,\epsilon}, }
+#' where \eqn{\|\theta\|_{0,\epsilon}} is the smooth L0 norm computed via
+#' \code{LBBNN$smooth_param_count(epsilon)} and \eqn{n_\mathrm{train}} is the number
+#' of training observations. During training with \code{criterion = "SIC"}, an
+#' \eqn{\epsilon}-telescope is implemented across epochs, as recommended in the paper.
+#'
 #' @param epochs integer, total number of epochs to train for, where one epoch is a pass through the entire training dataset (all mini batches).
 #' @param LBBNN An instance of  \code{LBBNN_Net}, to be trained.
 #' @param lr numeric, the learning rate to be used in the Adam optimizer.
@@ -12,6 +24,19 @@ library(torch)
 #' @param scheduler A torch learning rate scheduler object. Can be used to decay learning rate for better convergence, 
 #' currently only supports 'step'.
 #' @param sch_step_size Where to decay if using \code{torch::lr_step}. E.g. 1000 means learning rate is decayed every 1000 epochs.
+#' @param criterion character, either \code{"VI"} (default) for the original variational
+#' Bayes objective with KL-divergence, or \code{"SIC"} for the smooth information
+#' criterion of O’Neill and Burke (2023), which replaces the KL term with a smooth
+#' BIC-type penalty based on the smooth L0 norm.
+#' @param n_train integer, total number of training observations used when
+#' \code{criterion = "SIC"} to scale the BIC penalty via \eqn{\log(n_\mathrm{train})/2}.
+#' Ignored when \code{criterion = "VI"}.
+#' @param epsilon_1 numeric, starting value of the \eqn{\epsilon}-telescope when using
+#' \code{criterion = "SIC"}. Defaults to 10, as in O’Neill and Burke (2023).
+#' @param epsilon_T numeric, final value of the \eqn{\epsilon}-telescope when using
+#' \code{criterion = "SIC"}. Defaults to 1e-5.
+#' @param steps_T integer, number of steps in the \eqn{\epsilon}-telescope sequence
+#' when using \code{criterion = "SIC"}. Defaults to 100.
 #' @return a list containing the losses and accuracy (if classification) and density for each epoch during training.
 #' For comparisons sake we show the density with and without active paths.
 #' @examples
@@ -36,7 +61,33 @@ library(torch)
 #'     \item{density}{Vector of network densities per epoch.}
 #'   }
 #'@export
-train_LBBNN <- function(epochs,LBBNN,lr,train_dl,device = 'cpu',scheduler = NULL,sch_step_size = NULL){
+train_LBBNN <- function(epochs,
+                        LBBNN,
+                        lr,
+                        train_dl,
+                        device = "cpu",
+                        scheduler = NULL,
+                        sch_step_size = NULL,
+                        criterion = c("VI", "SIC"),
+                        n_train = NULL,
+                        epsilon_1 = 10,
+                        epsilon_T = 1e-5,
+                        steps_T = 100){
+  criterion <- match.arg(criterion)
+  if (criterion == "SIC") {
+    if (is.null(n_train) || !is.numeric(n_train) || length(n_train) != 1 || n_train <= 0) {
+      stop("When criterion = 'SIC', n_train must be a positive numeric scalar giving the number of training observations")
+    }
+    if (!is.numeric(epsilon_1) || !is.numeric(epsilon_T) || epsilon_1 <= 0 || epsilon_T <= 0) {
+      stop("epsilon_1 and epsilon_T must be positive numerics when criterion = 'SIC'")
+    }
+    if (!is.numeric(steps_T) || length(steps_T) != 1 || steps_T < 1) {
+      stop("steps_T must be a positive integer when criterion = 'SIC'")
+    }
+    # exponential epsilon-telescope as in O'Neill and Burke (2023)
+    eps_seq <- epsilon_1 * (epsilon_T/epsilon_1) ^ ((0:(steps_T - 1)) / max(1, steps_T - 1))
+    log_n_half <- 0.5 * log(n_train)
+  }
   opt <- torch::optim_adam(LBBNN$parameters,lr = lr)
   accs <- c()
   losses <-c()
@@ -62,6 +113,11 @@ train_LBBNN <- function(epochs,LBBNN,lr,train_dl,device = 'cpu',scheduler = NULL
     corrects <- 0
     totals <- 0
     train_loss <- c()
+    # map epoch to epsilon index if using SIC
+    if (criterion == "SIC") {
+      idx <- min(steps_T, max(1, ceiling(epoch * steps_T/epochs)))
+      epsilon <- eps_seq[idx]
+    }
     # use coro::loop() for stability and performance
     coro::loop(for (b in train_dl) {
 
@@ -79,8 +135,13 @@ train_LBBNN <- function(epochs,LBBNN,lr,train_dl,device = 'cpu',scheduler = NULL
         target <- torch::torch_tensor(target,dtype = torch::torch_long())
       }
       else(output <- output$squeeze()) #remove last dimension from binary classifiction or regression
-      
-      loss <- LBBNN$loss_fn(output, target) + LBBNN$kl_div() / length(train_dl)
+      data_loss <- LBBNN$loss_fn(output, target)
+      if (criterion == "VI") {
+        loss <- data_loss + LBBNN$kl_div() / length(train_dl)
+      } else {
+        k_smooth <- LBBNN$smooth_param_count(epsilon)
+        loss <- data_loss + log_n_half * k_smooth
+      }
     
       
       if(LBBNN$problem_type == 'multiclass classification' | LBBNN$problem_type == 'MNIST'){
@@ -147,10 +208,6 @@ train_LBBNN <- function(epochs,LBBNN,lr,train_dl,device = 'cpu',scheduler = NULL
   LBBNN$elapsed_time <- time[[3]]
   invisible(l)
 }
-
-
-
-
 
 #' @title Validate a trained LBBNN model.
 #' @description Computes metrics on a validation dataset without computing gradients.

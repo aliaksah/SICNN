@@ -53,6 +53,10 @@ library(torch)
 #'     \item \code{compute_paths()}: Computes active paths through the network without input-skip. 
 #'     \item \code{compute_paths_input_skip()}: Computes active paths with  input-skip enabled. 
 #'     \item \code{density_active_path()}: Returns network density after removing inactive paths.
+#'     \item \code{smooth_param_count(epsilon)}: Returns the smooth L0-based effective parameter
+#'     count used in the smooth information criterion (SIC) of O’Neill and Burke (2023),
+#'     based on the penalty \eqn{\phi_\epsilon(x) = x^2 / (x^2 + \epsilon^2)} applied to the
+#'     layer weight means.
 #'   }
 #'
 #' @export
@@ -171,6 +175,33 @@ LBBNN_Net <- torch::nn_module(
    
     return(x)
     },
+  smooth_param_count = function(epsilon){
+    # smooth approximation to the number of effective parameters as in
+    # O’Neill and Burke (2023), using the smooth L0 norm
+    #   phi_epsilon(x) = x^2 / (x^2 + epsilon^2)
+    # aggregated over all weight means in the network.
+    if(missing(epsilon) || !is.numeric(epsilon) || length(epsilon) != 1 || epsilon <= 0){
+      stop("epsilon must be a positive numeric scalar")
+    }
+    smooth_l0 <- function(tensor, epsilon){
+      num <- tensor ^ 2
+      den <- tensor ^ 2 + epsilon ^ 2
+      torch::torch_sum(num / den)
+    }
+    k_smooth <- torch::torch_tensor(0, dtype = torch::torch_float32(), device = self$device)
+    # hidden layers: penalize weight means only (biases play the role of intercepts
+    # and are left unpenalized, in line with the SIC formulation)
+    for(l in self$layers$children){
+      if(!is.null(l$weight_mean)){
+        k_smooth <- k_smooth + smooth_l0(l$weight_mean, epsilon)
+      }
+    }
+    # output layer
+    if(!is.null(self$out_layer$weight_mean)){
+      k_smooth <- k_smooth + smooth_l0(self$out_layer$weight_mean, epsilon)
+    }
+    return(k_smooth)
+  },
   kl_div = function(){
     kl <- 0
     for(l in self$layers$children)(kl <- kl + l$kl_div()) 
