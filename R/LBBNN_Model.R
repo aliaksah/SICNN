@@ -143,32 +143,32 @@ LBBNN_Net <- torch::nn_module(
     else(stop('the type of problem must either be: \'binary classification\', 
               \'multiclass classification\', \'regression\' or \'custom\''))
   },
-  forward = function(x,MPM=FALSE){
+  forward = function(x,MPM=FALSE, deterministic = FALSE){
     if(self$problem_type == 'MNIST')(x <- x$view(c(-1,28*28)))
     #regular LBBNN
     if(!self$input_skip){
       x <- x$view(c(-1,self$sizes[1]))
       for(l in self$layers$children){
-       x <- self$act(l(x,MPM)) #iterate over hidden layers
+       x <- self$act(l(x,MPM, deterministic = deterministic)) #iterate over hidden layers
         
       }
-      x <- self$out(self$out_layer(x,MPM))
+      x <- self$out(self$out_layer(x,MPM, deterministic = deterministic))
     }
     else{x_input <- x$view(c(-1,self$sizes[1]))
-    x <- self$layers$children$`0`(x_input,MPM) #first layer
+    x <- self$layers$children$`0`(x_input,MPM, deterministic = deterministic) #first layer
     j <- 1
     for(l in self$layers$children){
       if(j > 1){#skip the first layer when iterating.
-        x <- l(torch::torch_cat(c(x,x_input),dim = 2),MPM)
+        x <- l(torch::torch_cat(c(x,x_input),dim = 2),MPM, deterministic = deterministic)
       }
       j <- j + 1
     }
     
     #if we only want the raw output, skip sigmoid/softmax
     if(self$raw_output){
-      x<- self$out_layer(torch::torch_cat(c(x,x_input),dim = 2),MPM)
+      x<- self$out_layer(torch::torch_cat(c(x,x_input),dim = 2),MPM, deterministic = deterministic)
     }
-    else(x<- self$out(self$out_layer(torch::torch_cat(c(x,x_input),dim = 2),MPM)))
+    else(x<- self$out(self$out_layer(torch::torch_cat(c(x,x_input),dim = 2),MPM, deterministic = deterministic)))
 
       
     }
@@ -176,10 +176,12 @@ LBBNN_Net <- torch::nn_module(
     return(x)
     },
   smooth_param_count = function(epsilon){
-    # smooth approximation to the number of effective parameters as in
-    # O’Neill and Burke (2023), using the smooth L0 norm
-    #   phi_epsilon(x) = x^2 / (x^2 + epsilon^2)
-    # aggregated over all weight means in the network.
+    # Smooth approximation to the number of effective parameters used in SIC.
+    # In this architecture, the effective coefficient for each edge is
+    #   w_eff = weight_mean * alpha_soft
+    # where alpha_soft = sigmoid(lambda_l). We apply the smooth L0 surrogate
+    #  phi_epsilon(w) = w^2 / (w^2 + epsilon^2)
+    # to w_eff, consistent with the coefficient being regularized.
     if(missing(epsilon) || !is.numeric(epsilon) || length(epsilon) != 1 || epsilon <= 0){
       stop("epsilon must be a positive numeric scalar")
     }
@@ -189,18 +191,115 @@ LBBNN_Net <- torch::nn_module(
       torch::torch_sum(num / den)
     }
     k_smooth <- torch::torch_tensor(0, dtype = torch::torch_float32(), device = self$device)
-    # hidden layers: penalize weight means only (biases play the role of intercepts
-    # and are left unpenalized, in line with the SIC formulation)
+    # hidden layers
     for(l in self$layers$children){
-      if(!is.null(l$weight_mean)){
-        k_smooth <- k_smooth + smooth_l0(l$weight_mean, epsilon)
-      }
+      alpha_soft <- torch::torch_sigmoid(l$lambda_l)
+      w_eff <- l$weight_mean * alpha_soft
+      k_smooth <- k_smooth + smooth_l0(w_eff, epsilon)
     }
     # output layer
-    if(!is.null(self$out_layer$weight_mean)){
-      k_smooth <- k_smooth + smooth_l0(self$out_layer$weight_mean, epsilon)
-    }
+    alpha_out_soft <- torch::torch_sigmoid(self$out_layer$lambda_l)
+    w_eff_out <- self$out_layer$weight_mean * alpha_out_soft
+    k_smooth <- k_smooth + smooth_l0(w_eff_out, epsilon)
     return(k_smooth)
+  },
+
+  # Overall SIC density (proportion of active edges) based on w_eff.
+  sic_density = function(epsilon, threshold = 0.5){
+    if(missing(epsilon) || !is.numeric(epsilon) || length(epsilon) != 1 || epsilon <= 0){
+      stop("epsilon must be a positive numeric scalar")
+    }
+    if(!is.numeric(threshold) || length(threshold) != 1 || threshold <= 0 || threshold >= 1){
+      stop("threshold must be a numeric scalar in (0,1)")
+    }
+    phi_active <- function(w_eff){
+      # phi_epsilon(w) = w^2/(w^2+epsilon^2)
+      w2 <- w_eff ^ 2
+      w2 / (w2 + epsilon ^ 2) > threshold
+    }
+    num_incl <- torch::torch_tensor(0, dtype = torch::torch_float32(), device = self$device)
+    tot <- torch::torch_tensor(0, dtype = torch::torch_float32(), device = self$device)
+    for(l in self$layers$children){
+      alpha_soft <- torch::torch_sigmoid(l$lambda_l)
+      w_eff <- l$weight_mean * alpha_soft
+      m <- phi_active(w_eff)
+      num_incl <- num_incl + torch::torch_sum(m$to(torch::torch_float32()))
+      tot <- tot + m$numel()
+    }
+    alpha_out_soft <- torch::torch_sigmoid(self$out_layer$lambda_l)
+    w_eff_out <- self$out_layer$weight_mean * alpha_out_soft
+    m_out <- phi_active(w_eff_out)
+    num_incl <- num_incl + torch::torch_sum(m_out$to(torch::torch_float32()))
+    tot <- tot + m_out$numel()
+    return((num_incl / tot)$item())
+  },
+
+  # SIC density restricted to edges on the active paths (alpha_active_path mask).
+  sic_density_active_path = function(epsilon, threshold = 0.5){
+    if(missing(epsilon) || !is.numeric(epsilon) || length(epsilon) != 1 || epsilon <= 0){
+      stop("epsilon must be a positive numeric scalar")
+    }
+    if(!is.numeric(threshold) || length(threshold) != 1 || threshold <= 0 || threshold >= 1){
+      stop("threshold must be a numeric scalar in (0,1)")
+    }
+    if(self$computed_paths == FALSE){
+      if(self$input_skip){self$compute_paths_input_skip()} else {self$compute_paths()}
+    }
+    phi_active <- function(w_eff){
+      w2 <- w_eff ^ 2
+      w2 / (w2 + epsilon ^ 2) > threshold
+    }
+    num_incl <- torch::torch_tensor(0, dtype = torch::torch_float32(), device = self$device)
+    tot <- torch::torch_tensor(0, dtype = torch::torch_float32(), device = self$device)
+    for(l in self$layers$children){
+      alpha_mask_hard <- l$alpha_active_path
+      alpha_soft <- torch::torch_sigmoid(l$lambda_l)
+      w_eff <- l$weight_mean * alpha_soft
+      m_phi <- phi_active(w_eff)
+      m_on_path <- (alpha_mask_hard > 0) & m_phi
+      num_incl <- num_incl + torch::torch_sum(m_on_path$to(torch::torch_float32()))
+      tot <- tot + alpha_mask_hard$numel()
+    }
+    alpha_mask_out_hard <- self$out_layer$alpha_active_path
+    alpha_out_soft <- torch::torch_sigmoid(self$out_layer$lambda_l)
+    w_eff_out <- self$out_layer$weight_mean * alpha_out_soft
+    m_phi_out <- phi_active(w_eff_out)
+    m_on_path_out <- (alpha_mask_out_hard > 0) & m_phi_out
+    num_incl <- num_incl + torch::torch_sum(m_on_path_out$to(torch::torch_float32()))
+    tot <- tot + alpha_mask_out_hard$numel()
+    return((num_incl / tot)$item())
+  },
+
+  # Counts active/removed edges under SIC.
+  sic_weight_counts = function(epsilon, threshold = 0.5){
+    if(missing(epsilon) || !is.numeric(epsilon) || length(epsilon) != 1 || epsilon <= 0){
+      stop("epsilon must be a positive numeric scalar")
+    }
+    if(!is.numeric(threshold) || length(threshold) != 1 || threshold <= 0 || threshold >= 1){
+      stop("threshold must be a numeric scalar in (0,1)")
+    }
+    phi_active <- function(w_eff){
+      w2 <- w_eff ^ 2
+      w2 / (w2 + epsilon ^ 2) > threshold
+    }
+    num_incl <- torch::torch_tensor(0, dtype = torch::torch_float32(), device = self$device)
+    tot <- torch::torch_tensor(0, dtype = torch::torch_float32(), device = self$device)
+    for(l in self$layers$children){
+      alpha_soft <- torch::torch_sigmoid(l$lambda_l)
+      w_eff <- l$weight_mean * alpha_soft
+      m <- phi_active(w_eff)
+      num_incl <- num_incl + torch::torch_sum(m$to(torch::torch_float32()))
+      tot <- tot + m$numel()
+    }
+    alpha_out_soft <- torch::torch_sigmoid(self$out_layer$lambda_l)
+    w_eff_out <- self$out_layer$weight_mean * alpha_out_soft
+    m_out <- phi_active(w_eff_out)
+    num_incl <- num_incl + torch::torch_sum(m_out$to(torch::torch_float32()))
+    tot <- tot + m_out$numel()
+    active <- num_incl$item()
+    total <- tot$item()
+    removed <- total - active
+    return(c(active = active, total = total, removed = removed))
   },
   kl_div = function(){
     kl <- 0
@@ -214,9 +313,14 @@ LBBNN_Net <- torch::nn_module(
       stop('self$input_skip must be FALSE to use this function')
     }
     self$computed_paths <- TRUE
-    #sending a random input through the network of alpha matrices (0 and 1)
+    # sending an input through the network of alpha matrices (0 and 1)
     #and then backpropagating to find active paths
-    a <- rnorm(n = self$layers$children$`0`$alpha$shape[2])
+    # In deterministic SIC mode, avoid randomness so sparse predictions are stable.
+    if(!is.null(self$criterion_trained) && self$criterion_trained == "SIC"){
+      a <- rep(1, times = self$layers$children$`0`$alpha$shape[2])
+    }else{
+      a <- rnorm(n = self$layers$children$`0`$alpha$shape[2])
+    }
     x0 <- torch::torch_tensor(a, dtype = torch::torch_float32(),device = self$device)
     alpha_mats <- list() #initialize empty list to append network alphas
     
@@ -267,9 +371,14 @@ LBBNN_Net <- torch::nn_module(
       stop('self$input_skip must be TRUE to use this funciton')
     }
     self$computed_paths <- TRUE
-    #sending a random input through the network of alpha matrices (0 and 1)
+    # sending an input through the network of alpha matrices (0 and 1)
     #and then backpropagating to find active paths
-    a <- rnorm(n = self$layers$children$`0`$alpha$shape[2])
+    # In deterministic SIC mode, avoid randomness so sparse predictions are stable.
+    if(!is.null(self$criterion_trained) && self$criterion_trained == "SIC"){
+      a <- rep(1, times = self$layers$children$`0`$alpha$shape[2])
+    }else{
+      a <- rnorm(n = self$layers$children$`0`$alpha$shape[2])
+    }
     x0 <- torch::torch_tensor(a, dtype = torch::torch_float32(),device = self$device)$unsqueeze(dim = 1)
     alpha_mats <- list() #initialize empty list to append network alphas
     lamd_input <- self$layers$children$`0`$lambda_l

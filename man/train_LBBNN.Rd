@@ -11,7 +11,12 @@ train_LBBNN(
   train_dl,
   device = "cpu",
   scheduler = NULL,
-  sch_step_size = NULL
+  sch_step_size = NULL,
+  criterion = c("VI", "SIC"),
+  n_train = NULL,
+  epsilon_1 = 10,
+  epsilon_T = 1e-05,
+  steps_T = 100
 )
 }
 \arguments{
@@ -30,6 +35,24 @@ with features and targets.}
 currently only supports 'step'.}
 
 \item{sch_step_size}{Where to decay if using \code{torch::lr_step}. E.g. 1000 means learning rate is decayed every 1000 epochs.}
+
+\item{criterion}{character, either \code{"VI"} (default) for the original variational
+Bayes objective with KL-divergence, or \code{"SIC"} for the smooth information
+criterion of O’Neill and Burke (2023), which replaces the KL term with a smooth
+BIC-type penalty based on the smooth L0 norm.}
+
+\item{n_train}{integer, total number of training observations used when
+\code{criterion = "SIC"} to scale the BIC penalty via \eqn{\log(n_\mathrm{train})/2}.
+Ignored when \code{criterion = "VI"}.}
+
+\item{epsilon_1}{numeric, starting value of the \eqn{\epsilon}-telescope when using
+\code{criterion = "SIC"}. Defaults to 10, as in O’Neill and Burke (2023).}
+
+\item{epsilon_T}{numeric, final value of the \eqn{\epsilon}-telescope when using
+\code{criterion = "SIC"}. Defaults to 1e-5.}
+
+\item{steps_T}{integer, number of steps in the \eqn{\epsilon}-telescope sequence
+when using \code{criterion = "SIC"}. Defaults to 100.}
 }
 \value{
 a list containing the losses and accuracy (if classification) and density for each epoch during training.
@@ -45,6 +68,16 @@ A list with elements (returned invisibly):
 \description{
 Function that for each epoch iterates through each mini-batch, computing
 the loss and using back-propagation to update the network parameters.
+
+By default, \code{train_LBBNN} uses the original variational Bayes objective:
+the data-fit loss plus the KL-divergence term from \code{LBBNN$kl_div()}.
+Alternatively, setting \code{criterion = "SIC"} replaces the KL term with the
+smooth BIC-type penalty of O’Neill and Burke (2023), i.e.
+\deqn{ -\ell(\theta) + \tfrac{1}{2}\log(n_\mathrm{train}) \|\theta\|_{0,\epsilon}, }
+where \eqn{\|\theta\|_{0,\epsilon}} is the smooth L0 norm computed via
+\code{LBBNN$smooth_param_count(epsilon)} and \eqn{n_\mathrm{train}} is the number
+of training observations. During training with \code{criterion = "SIC"}, an
+\eqn{\epsilon}-telescope is implemented across epochs, as recommended in the paper.
 }
 \examples{
 \donttest{ 

@@ -68,9 +68,17 @@ RNVP_layer <- torch::nn_module(
     self$net <- MLP(hidden_sizes,device)
     self$t <- torch::nn_linear(hidden_sizes[length(hidden_sizes)],hidden_sizes[1])
     self$s <- torch::nn_linear(hidden_sizes[length(hidden_sizes)],hidden_sizes[1])
+    # When set to TRUE, remove stochasticity from the RNVP gating.
+    # Used for deterministic SIC training/validation.
+    self$deterministic <- FALSE
   },
   forward = function(z){
-    self$m <- torch::torch_bernoulli(0.5 * torch::torch_ones_like(z))
+    if(isTRUE(self$deterministic)){
+      # Use the expectation of the Bernoulli gate instead of sampling.
+      self$m <- 0.5 * torch::torch_ones_like(z)
+    }else{
+      self$m <- torch::torch_bernoulli(0.5 * torch::torch_ones_like(z))
+    }
     z1 <- (1-self$m) * z
     z2 <- self$m * z
     out <- self$net(z2)

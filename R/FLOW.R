@@ -61,6 +61,13 @@ FLOW <- torch::nn_module(
     l = list('z' = z,'logdet' = logdet)
     return(l)
   }
+  ,
+  set_deterministic = function(deterministic = TRUE){
+    for(l in self$layers$children){
+      l$deterministic <- deterministic
+    }
+    invisible(NULL)
+  }
 )
 
 

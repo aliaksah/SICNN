@@ -77,49 +77,152 @@ get_input_inclusions <- function(model){
 #'summary(model)
 #'}
 #' @export
-summary.LBBNN_Net <- function(object, ...) {
+summary.LBBNN_Net <- function(object,
+                              criterion = c("VI", "SIC"),
+                              epsilon = 1e-5,
+                              threshold = 0.5,
+                              ...) {
+  criterion <- match.arg(criterion)
 
   if(object$input_skip == FALSE)(stop('Summary only applies to objects with input-skip = TRUE'))
-  if(object$computed_paths == FALSE){object$compute_paths_input_skip()} 
-  inclusions <- get_input_inclusions(object) # a matrix of size (p,L), with p # inputs, L # layers 
-   
-  #now get the average inclusion probabilities of each layer
-  p <- object$sizes[1] # number of inputs
-  L <- length(object$sizes) - 1 # number of layers
-  alpha_means <- matrix(nrow = p, ncol = L)
-  i <- 1
-  all_alphas <- c()
-  col_names <- c()
-  for(l in object$layers$children){
-    alpha_l <- l$alpha$clone()$detach()$cpu()
-    aa <- alpha_l[, (dim(alpha_l)[2] - p + 1):dim(alpha_l)[2]] #only need last p corresponding to input, ignoring hidden layer alphas
-    alpha_means[,i] <- round(as.numeric(aa$mean(dim = 1)),3)
-    all_alphas <- rbind(all_alphas, as.matrix(aa))
-    col_names <- c(col_names,paste('a',i - 1,sep = ''))
-    i <- i + 1
-  }
-  #now do the output layer
-  alpha_out <- object$out_layer$alpha$clone()$detach()
-  a_out <- alpha_out[, (dim(alpha_out)[2] - p + 1):dim(alpha_out)[2]]
-  all_alphas <- rbind(all_alphas, as.matrix(a_out))
-  col_names <- c(col_names,paste('a',i - 1,sep = ''))
-  alpha_means[,i] <- round(as.numeric(a_out$mean(dim = 1)),3)
-  a_avg <- round(colMeans(all_alphas),3)
-  colnames(alpha_means) <- col_names
-  alpha_means <- cbind(alpha_means,a_avg)
-  summary_out <- as.data.frame(cbind(inclusions,alpha_means))
-  cat("Summary of LBBNN_Net object:\n")
-  cat("-----------------------------------\n")
-  cat("Shows the number of times each variable was included from each layer\n")
-  cat("-----------------------------------\n")
-  cat("Then the average inclusion probability for each input from each layer\n")
-  cat("-----------------------------------\n")
-  cat("The final column shows the average inclusion probability across all layers\n")
-  cat("-----------------------------------\n")
-  print(summary_out)
-  cat(paste('The model took',object$elapsed_time,'seconds to train, using',object$device)) #should return this as well in a list with summary_out? and update docs..
-  invisible(summary_out)
 
+  p <- object$sizes[1] # number of inputs
+  L <- length(object$sizes) - 1 # number of layers (weight matrices incl. output)
+
+  if(criterion == "VI"){
+    if(object$computed_paths == FALSE){object$compute_paths_input_skip()} 
+    inclusions <- get_input_inclusions(object) # (p,L)
+
+    # average inclusion probabilities of each layer (from alpha values)
+    alpha_means <- matrix(nrow = p, ncol = L)
+    i <- 1
+    all_alphas <- c()
+    col_names <- c()
+    for(l in object$layers$children){
+      alpha_l <- l$alpha$clone()$detach()$cpu()
+      aa <- alpha_l[, (dim(alpha_l)[2] - p + 1):dim(alpha_l)[2]] # only last p corresponding to x
+      alpha_means[,i] <- round(as.numeric(aa$mean(dim = 1)),3)
+      all_alphas <- rbind(all_alphas, as.matrix(aa))
+      col_names <- c(col_names,paste('a',i - 1,sep = ''))
+      i <- i + 1
+    }
+
+    # now do the output layer
+    alpha_out <- object$out_layer$alpha$clone()$detach()$cpu()
+    a_out <- alpha_out[, (dim(alpha_out)[2] - p + 1):dim(alpha_out)[2]]
+    all_alphas <- rbind(all_alphas, as.matrix(a_out))
+    col_names <- c(col_names,paste('a',i - 1,sep = ''))
+    alpha_means[,i] <- round(as.numeric(a_out$mean(dim = 1)),3)
+    a_avg <- round(colMeans(all_alphas),3)
+    colnames(alpha_means) <- col_names
+    alpha_means <- cbind(alpha_means,a_avg)
+    summary_out <- as.data.frame(cbind(inclusions,alpha_means))
+
+    cat("Summary of LBBNN_Net object:\n")
+    cat("-----------------------------------\n")
+    cat("Shows the number of times each variable was included from each layer\n")
+    cat("-----------------------------------\n")
+    cat("Then the average inclusion probability for each input from each layer\n")
+    cat("-----------------------------------\n")
+    cat("The final column shows the average inclusion probability across all layers\n")
+    cat("-----------------------------------\n")
+    print(summary_out)
+    cat(paste('The model took',object$elapsed_time,'seconds to train, using',object$device))
+    invisible(summary_out)
+  } else {
+    if(!is.numeric(epsilon) || length(epsilon) != 1 || epsilon <= 0){
+      stop("epsilon must be a positive numeric scalar")
+    }
+    if(!is.numeric(threshold) || length(threshold) != 1 || threshold <= 0 || threshold >= 1){
+      stop("threshold must be a numeric scalar in (0,1)")
+    }
+
+    # SIC: active weights are defined using the smooth L0 surrogate applied to
+    # the effective coefficients in this architecture:
+    #   w_eff = weight_mean * sigmoid(lambda_l)
+    # phi_epsilon(w_eff) = w_eff^2 / (w_eff^2 + epsilon^2)
+    # and a weight is considered active if phi_epsilon(w_eff) > threshold.
+
+    active_counts <- matrix(nrow = p, ncol = L)  # L0..L_{L-1}
+    active_props  <- matrix(nrow = p, ncol = L)  # a0..a_{L-1}
+    col_names_L <- c()
+    col_names_a <- c()
+
+    i <- 1
+    for(l in object$layers$children){
+      W <- l$weight_mean$clone()$detach()$cpu()
+      alpha_soft <- torch::torch_sigmoid(l$lambda_l)$clone()$detach()$cpu()
+      in_features <- dim(W)[2]
+      cov_cols <- if(in_features == p) {
+        1:p
+      } else {
+        (in_features - p + 1):in_features
+      }
+      W_cov <- W[, cov_cols] # out_features x p
+      alpha_cov <- alpha_soft[, cov_cols] # out_features x p
+      W_sq <- W_cov ^ 2
+      W_eff_cov <- W_cov * alpha_cov
+      W_sq <- W_eff_cov ^ 2
+      phi <- W_sq / (W_sq + epsilon^2)
+      phi_mat <- as.matrix(phi)
+      active_mat <- (phi_mat > threshold) # out_features x p (logical)
+      counts <- colSums(active_mat)
+      props  <- counts / nrow(active_mat)
+
+      active_counts[,i] <- counts
+      active_props[,i]  <- props
+      col_names_L <- c(col_names_L, paste0("L", i - 1))
+      col_names_a <- c(col_names_a, paste0("a", i - 1))
+      i <- i + 1
+    }
+
+    # output layer
+    W <- object$out_layer$weight_mean$clone()$detach()$cpu()
+    alpha_out_soft <- torch::torch_sigmoid(object$out_layer$lambda_l)$clone()$detach()$cpu()
+    in_features <- dim(W)[2]
+    cov_cols <- if(in_features == p) {
+      1:p
+    } else {
+      (in_features - p + 1):in_features
+    }
+    W_cov <- W[, cov_cols]
+    alpha_out_cov <- alpha_out_soft[, cov_cols]
+    W_eff_cov <- W_cov * alpha_out_cov
+    W_sq <- W_eff_cov ^ 2
+    phi <- W_sq / (W_sq + epsilon^2)
+    phi_mat <- as.matrix(phi)
+    active_mat <- (phi_mat > threshold)
+    counts <- colSums(active_mat)
+    props  <- counts / nrow(active_mat)
+
+    active_counts[,i] <- counts
+    active_props[,i]  <- props
+    col_names_L <- c(col_names_L, paste0("L", i - 1))
+    col_names_a <- c(col_names_a, paste0("a", i - 1))
+
+    a_avg <- rowMeans(active_props)
+
+    active_props <- round(active_props, 3)
+    a_avg <- round(a_avg, 3)
+
+    colnames(active_counts) <- col_names_L
+    colnames(active_props) <- col_names_a
+
+    summary_out <- as.data.frame(cbind(active_counts, active_props, a_avg))
+    colnames(summary_out)[(ncol(active_counts)+ncol(active_props)+1)] <- "a_avg"
+
+    cat("Summary of LBBNN_Net object (SIC-based):\n")
+    cat("-----------------------------------\n")
+    cat("L{l}: number of active weights connected to input xj in layer l\n")
+    cat("-----------------------------------\n")
+    cat("a{l}: proportion of those weights that are active\n")
+    cat("-----------------------------------\n")
+    cat("a_avg: average of a{l} across layers\n")
+    cat("-----------------------------------\n")
+    print(summary_out)
+    cat(paste('The model took',object$elapsed_time,'seconds to train, using',object$device))
+    invisible(summary_out)
+  }
 }
 
 
@@ -327,6 +430,7 @@ predict.LBBNN_Net <- function(object,newdata,mpm = FALSE,draws = 10,device = 'cp
    
     
   }
+  deterministic_sic <- (!is.null(object$criterion_trained) && object$criterion_trained == "SIC")
   if(class(newdata)[[1]] != 'dataloader')stop('Currently only torch::dataloader objects are supported for newdata')
   out_shape <- object$sizes[length(object$sizes)] #number of output neurons
   all_outs <- NULL
@@ -335,7 +439,7 @@ predict.LBBNN_Net <- function(object,newdata,mpm = FALSE,draws = 10,device = 'cp
       outputs <- torch::torch_zeros(draws,dim(b[[1]])[1],out_shape)$to(device=device)
       for(i in 1:draws){
         data <- b[[1]]$to(device = device)
-        outputs[i]<- object(data,MPM=mpm)
+        outputs[i]<- object(data,MPM=mpm, deterministic = deterministic_sic)
       }
       all_outs <- torch::torch_cat(c(all_outs,outputs),dim = 2) #add all the mini-batches together
       

@@ -207,7 +207,7 @@ LBBNN_Linear <- torch::nn_module(
     return(out)
   }
   ,
-  forward = function(input,MPM=FALSE) {
+  forward = function(input,MPM=FALSE, deterministic = FALSE) {
     self$alpha <- torch::torch_sigmoid(self$lambda_l)
     if(self$bias_inclusion_prob){
     self$bias_alpha <- torch::torch_sigmoid(self$bias_lambda_l)
@@ -216,28 +216,53 @@ LBBNN_Linear <- torch::nn_module(
     self$bias_sigma <- torch::torch_log1p(torch_exp(self$bias_rho))
     self$z_k <- torch::torch_ones_like(self$weight_mean) #if not flow, all z = 1.
     if(self$flow){
-      out <- self$sample_z()
-      self$z_k <- out$z
-    }
-    if (! MPM) {#compute the mean and the variance of the activations using the LRT
-      e_w <- self$weight_mean * self$alpha * self$z_k
-      var_w <- self$alpha * (self$weight_sigma^2 + (1 - self$alpha) * self$weight_mean^2*self$z_k^2)
-      if(self$bias_inclusion_prob){
-        e_b_alpha <- self$bias_mean * self$bias_alpha
-        var_b_alpha <- self$bias_alpha * (self$bias_sigma^2 + (1-self$bias_alpha)*self$bias_mean^2)
-      } else {
-        e_b_alpha <- self$bias_mean
-        var_b_alpha <- self$bias_sigma^2
+      if(deterministic){
+        self$RNVP_flow$set_deterministic(TRUE)
+        # deterministic flow: use q0_mean without noise
+        self$z <- self$q0_mean
+        out <- self$RNVP_flow(self$z)
+        self$z_k <- out$z
+      }else{
+        self$RNVP_flow$set_deterministic(FALSE)
+        out <- self$sample_z()
+        self$z_k <- out$z
       }
-      e_b <- torch::torch_matmul(input, torch::torch_t(e_w)) + e_b_alpha
-      var_b <- torch::torch_matmul(input^2, torch::torch_t(var_w)) + var_b_alpha
-      eps <- torch::torch_randn(size=(dim(var_b)), device=self$device)
-      activations <- e_b + torch::torch_sqrt(var_b) * eps
+    }
+    if (! MPM) {#compute mean/variance of activations (VI) or just mean (deterministic SIC)
+      e_w <- self$weight_mean * self$alpha * self$z_k
+      if(deterministic){
+        if(self$bias_inclusion_prob){
+          e_b_alpha <- self$bias_mean * self$bias_alpha
+        } else {
+          e_b_alpha <- self$bias_mean
+        }
+        e_b <- torch::torch_matmul(input, torch::torch_t(e_w)) + e_b_alpha
+        activations <- e_b
+      }else{
+        var_w <- self$alpha * (self$weight_sigma^2 + (1 - self$alpha) * self$weight_mean^2*self$z_k^2)
+        if(self$bias_inclusion_prob){
+          e_b_alpha <- self$bias_mean * self$bias_alpha
+          var_b_alpha <- self$bias_alpha * (self$bias_sigma^2 + (1-self$bias_alpha)*self$bias_mean^2)
+        } else {
+          e_b_alpha <- self$bias_mean
+          var_b_alpha <- self$bias_sigma^2
+        }
+        e_b <- torch::torch_matmul(input, torch::torch_t(e_w)) + e_b_alpha
+        var_b <- torch::torch_matmul(input^2, torch::torch_t(var_w)) + var_b_alpha
+        eps <- torch::torch_randn(size=(dim(var_b)), device=self$device)
+        activations <- e_b + torch::torch_sqrt(var_b) * eps
+      }
       
     }else {#median probability model
-      w <- torch::torch_normal(self$weight_mean * self$z_k, self$weight_sigma)
-      bias <- torch::torch_normal(self$bias_mean, self$bias_sigma)
-      weight <- w * self$alpha_active_path
+      if(deterministic){
+        w <- self$weight_mean * self$z_k
+        bias <- self$bias_mean
+        weight <- w * self$alpha_active_path
+      }else{
+        w <- torch::torch_normal(self$weight_mean * self$z_k, self$weight_sigma)
+        bias <- torch::torch_normal(self$bias_mean, self$bias_sigma)
+        weight <- w * self$alpha_active_path
+      }
       
       #need the below if we are running a convolutional net without active paths
       if(self$conv_net){
@@ -246,7 +271,7 @@ LBBNN_Linear <- torch::nn_module(
       }
       
       if(self$bias_inclusion_prob){
-      bias <- bias * (self$bias_alpha>0.5)
+        bias <- bias * (self$bias_alpha>0.5)
       }
       activations <- torch::torch_matmul(input, torch::torch_t(weight)) + bias
     }
@@ -432,29 +457,46 @@ LBBNN_Conv2d <- torch::nn_module(
     
     
   },
-  forward = function(input,MPM=FALSE) {
+  forward = function(input,MPM=FALSE, deterministic = FALSE) {
     self$alpha <- 1 / (1 + torch::torch_exp(-self$lambda_l))
     self$weight_sigma <- torch::torch_log1p(torch_exp(self$weight_rho))
     self$bias_sigma <- torch::torch_log1p(torch_exp(self$bias_rho))
     
     z_k <- torch::torch_ones(self$out_channels,device = self$device) #if mean field
     if(self$flow){
-      out <- self$sample_z()
-      z_k <- out$z
+      if(deterministic){
+        self$RNVP_flow$set_deterministic(TRUE)
+        self$z <- self$q0_mean
+        out <- self$RNVP_flow(self$z)
+        z_k <- out$z
+      }else{
+        self$RNVP_flow$set_deterministic(FALSE)
+        out <- self$sample_z()
+        z_k <- out$z
+      }
     }
     
     if (! MPM) {#compute the mean and the variance of the activations using the LRT
       e_w <- self$weight_mean * self$alpha * z_k$view(c(-1,1,1,1))
       var_w <- self$alpha * (self$weight_sigma^2 + (1 - self$alpha) * self$weight_mean^2 * z_k$view(c(-1,1,1,1))^2)
-      psi <- torch::nnf_conv2d(input = input,weight = e_w,bias = self$bias_mu)
+      psi <- torch::nnf_conv2d(input = input,weight = e_w,bias = self$bias_mean)
       delta <- torch::nnf_conv2d(input = input^2,weight = var_w,bias = self$bias_sigma^2)
-      #delta[delta<= 0] = 0 +1e-20 
-      eps <- torch::torch_randn(size=(dim(delta)), device=self$device)
-      activations <- psi + torch::torch_sqrt(delta) * eps
+      if(deterministic){
+        activations <- psi
+      }else{
+        #delta[delta<= 0] = 0 +1e-20 
+        eps <- torch::torch_randn(size=(dim(delta)), device=self$device)
+        activations <- psi + torch::torch_sqrt(delta) * eps
+      }
     }else {#only sample from weights with inclusion prob > 0.5 aka the median probability model 
       gamma <-(self$alpha$clone()$detach()> 0.5) * 1.
-      w <- torch::torch_normal(self$weight_mean*z_k$view(c(-1,1,1,1)), self$weight_sigma)
-      bias <- torch::torch_normal(self$bias_mean, self$bias_sigma)
+      if(deterministic){
+        w <- self$weight_mean*z_k$view(c(-1,1,1,1))
+        bias <- self$bias_mean
+      }else{
+        w <- torch::torch_normal(self$weight_mean*z_k$view(c(-1,1,1,1)), self$weight_sigma)
+        bias <- torch::torch_normal(self$bias_mean, self$bias_sigma)
+      }
       weight <- w * gamma
       activations <- torch::nnf_conv2d(input = input,weight = weight,bias = bias)
     }

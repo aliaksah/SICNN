@@ -69,6 +69,10 @@ with inclusion probabilities greater than 0.5.
 \item \code{compute_paths()}: Computes active paths through the network without input-skip.
 \item \code{compute_paths_input_skip()}: Computes active paths with  input-skip enabled.
 \item \code{density_active_path()}: Returns network density after removing inactive paths.
+\item \code{smooth_param_count(epsilon)}: Returns the smooth L0-based effective parameter
+count used in the smooth information criterion (SIC) of O’Neill and Burke (2023),
+based on the penalty \eqn{\phi_\epsilon(x) = x^2 / (x^2 + \epsilon^2)} applied to the
+layer weight means.
 }
 }
 \description{

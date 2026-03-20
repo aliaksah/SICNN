@@ -42,11 +42,13 @@ get_local_explanations_gradient <- function(model,input_data,
   predictions <- torch::torch_zeros(num_samples,num_classes)
   
   model$raw_output = TRUE #to skip last sigmoid/softmax layer
+  deterministic_sic <- (!is.null(model$criterion_trained) && model$criterion_trained == "SIC")
+  if(deterministic_sic){ num_samples <- 1 }
   for( b in 1:num_samples){#for each sample, get explanations for each class
     input_data$requires_grad = TRUE
     input_data <- input_data$to(device = device)
     model$zero_grad()
-    output = model(input_data,MPM = TRUE) #forward pass, using MPM
+    output = model(input_data,MPM = TRUE, deterministic = deterministic_sic) #forward pass, using MPM
     for(k in 1:num_classes){
       output_value <- output[1,k]
       grad = torch::autograd_grad(outputs = output_value,inputs = input_data,
