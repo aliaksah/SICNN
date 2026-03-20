@@ -40,19 +40,19 @@ device <- 'cpu' #can also be mps or gpu.
 
 #use the function Custom_activation() to get an activation function
 #it lives in the file custom_activation_function.R
-model_input_skip <- LBBNN_Net(problem_type = problem,sizes = sizes,prior = inclusion_priors,
+model_input_skip <- SICNN_Net(problem_type = problem,sizes = sizes,prior = inclusion_priors,
                               inclusion_inits = inclusion_inits,input_skip = TRUE,std = stds,
                               flow = TRUE,device = device,custom_act = Custom_activation())
 
 
 
-results_input_skip <- train_LBBNN(epochs = 500,LBBNN = model_input_skip,
+results_input_skip <- train_SICNN(epochs = 500,SICNN = model_input_skip,
                                   lr = 0.01,train_dl = train_loader,device = device)
 
 #run validate before plotting
-validate_LBBNN(LBBNN = model_input_skip,num_samples = 100,test_dl = test_loader,device)
+validate_SICNN(SICNN = model_input_skip,num_samples = 100,test_dl = test_loader,device)
 
-LBBNN_plot(model_input_skip,layer_spacing = 1,neuron_spacing = 1,vertex_size = 10,edge_width = 0.5)
+SICNN_plot(model_input_skip,layer_spacing = 1,neuron_spacing = 1,vertex_size = 10,edge_width = 0.5)
 
 
 #get a random sample from the dataloader
@@ -67,7 +67,7 @@ plot_local_explanations_gradient(model_input_skip,d1,num_samples = 100)
 plot_local_explanations_gradient(model_input_skip,d2,num_samples = 100)
 
 #check what the predicted values look like
-b <- posterior_predict.LBBNN(model_input_skip,mpm = TRUE,test_loader,draws = 100)
+b <- posterior_predict.SICNN(model_input_skip,mpm = TRUE,test_loader,draws = 100)
 b<-b$squeeze()
 b <- torch::torch_mean(b,dim = 1)
 b <- as.numeric(b)

@@ -44,20 +44,20 @@ device <- 'cpu' #can also be mps or gpu.
 
 
 #works when inclusion is activated, breaks otherwise
-model_input_skip <- LBBNN_Net(problem_type = problem,sizes = sizes,prior = inclusion_priors,
+model_input_skip <- SICNN_Net(problem_type = problem,sizes = sizes,prior = inclusion_priors,
                               inclusion_inits = inclusion_inits,input_skip = TRUE,std = stds,
                               flow = TRUE,device = device)
 
 
 
-results_input_skip <- train_LBBNN(epochs = 5000,LBBNN = model_input_skip,
+results_input_skip <- train_SICNN(epochs = 5000,SICNN = model_input_skip,
                                   lr = 0.005,train_dl = train_loader,device = device,
                                   scheduler = 'step',sch_step_size = 10000)
 
 #need to run validate before plotting
-validate_LBBNN(LBBNN = model_input_skip,num_samples = 100,test_dl = test_loader,device)
+validate_SICNN(SICNN = model_input_skip,num_samples = 100,test_dl = test_loader,device)
 
-LBBNN_plot(model_input_skip,layer_spacing = 1,neuron_spacing = 1,vertex_size = 8,edge_width = 0.5)
+SICNN_plot(model_input_skip,layer_spacing = 1,neuron_spacing = 1,vertex_size = 8,edge_width = 0.5)
 
 
 #get a random sample from the dataloader
@@ -80,7 +80,7 @@ b <- as.numeric(b)
 print(paste('GBM MSE =',mltools::mse(predictions,ground_truth)))
 print(paste('GMB R2 = ',cor(predictions,ground_truth)^2))
 
-print(paste('LBBNN MSE =',mltools::mse(b,ground_truth)))
-print(paste('LBBNN R2 = ',cor(b,ground_truth)^2))
+print(paste('SICNN MSE =',mltools::mse(b,ground_truth)))
+print(paste('SICNN R2 = ',cor(b,ground_truth)^2))
 
 coef(model_input_skip,dataset = )

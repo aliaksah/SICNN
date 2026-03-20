@@ -1,4 +1,4 @@
-library(LBBNN)
+library(SICNN)
 
 #### Tutorial 1: simulated data with linear effects
 
@@ -29,7 +29,7 @@ incl_inits <- matrix(rep(c(-10,10),3),nrow = 2,ncol = 3) #inclusion inits
 device <- 'cpu' #can also be 'gpu' or 'mps'
 
 
-model_input_skip <- LBBNN_Net(problem_type = problem,sizes = sizes,
+model_input_skip <- SICNN_Net(problem_type = problem,sizes = sizes,
                               prior = incl_priors,inclusion_inits = incl_inits,
                               std = stds, input_skip = TRUE,flow = FALSE,
                               num_transforms = 2,dims = c(2,2),
@@ -39,9 +39,9 @@ model_input_skip <- LBBNN_Net(problem_type = problem,sizes = sizes,
 
 
 
-train_LBBNN(epochs = 2000,LBBNN = model_input_skip,
+train_SICNN(epochs = 2000,SICNN = model_input_skip,
             lr = 0.01,train_dl = train_loader,device = device)
-validate_LBBNN(LBBNN = model_input_skip,num_samples = 10,test_dl = test_loader,
+validate_SICNN(SICNN = model_input_skip,num_samples = 10,test_dl = test_loader,
               device = device)
 
 coef(model_input_skip,dataset = train_loader,inds = c(1,2,5,10,20),

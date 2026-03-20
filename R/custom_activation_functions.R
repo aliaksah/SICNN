@@ -1,7 +1,7 @@
 #' @title Generate a custom activation function.
 #' @description The first 3 entries are customized
 #' in order to see if we can learn that structure. The rest will be relu as usual 
-#' @return Returns a `\code{torch::nn_module} that can be used in an \code{LBBNN_Net}  
+#' @return Returns a `\code{torch::nn_module} that can be used in an \code{SICNN_Net}  
 #' @export
 Custom_activation <- nn_module(
   "Custom_activation",

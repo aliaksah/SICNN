@@ -24,20 +24,20 @@ test_loader <- torch::dataloader(test_ds, batch_size = 100)
 device <- 'mps'
 torch::torch_manual_seed(42)
 
-conv_layer_1 <- LBBNN_Conv2d(in_channels = 1, out_channels = 32, kernel_size = 5,
+conv_layer_1 <- SICNN_Conv2d(in_channels = 1, out_channels = 32, kernel_size = 5,
                            prior_inclusion = 0.5,standard_prior = 1,density_init = c(-10,10),
                            num_transforms = 2,flow = FALSE,hidden_dims = c(200,200),device = device)
-conv_layer_2 <- LBBNN_Conv2d(in_channels = 32, out_channels = 64, kernel_size = 5,
+conv_layer_2 <- SICNN_Conv2d(in_channels = 32, out_channels = 64, kernel_size = 5,
                            prior_inclusion = 0.5,standard_prior = 1,density_init = c(-10,15),
                            num_transforms = 2,flow = FALSE,hidden_dims = c(200,200),device = device)
 
-linear_layer_1 <- LBBNN_Linear(in_features = 1024, out_features = 300,
+linear_layer_1 <- SICNN_Linear(in_features = 1024, out_features = 300,
                          prior_inclusion = 0.5,standard_prior = 1,
                          density_init = c(-10,10),num_transforms = 2,
                          flow = FALSE,hidden_dims = c(200,200),device = device,
                          bias_inclusion_prob = FALSE,conv_net = TRUE)
 
-linear_layer_2 <- LBBNN_Linear(in_features = 300,out_features = 10,
+linear_layer_2 <- SICNN_Linear(in_features = 300,out_features = 10,
                          prior_inclusion = 0.5,standard_prior = 1,
                          density_init = c(-5,15),num_transforms = 2,
                          flow = FALSE,hidden_dims = c(200,200),device = device,
@@ -47,8 +47,8 @@ linear_layer_2 <- LBBNN_Linear(in_features = 300,out_features = 10,
 
 
 
-LBBNN_ConvNet <- torch::nn_module(
-  "LBBNN_ConvNet",
+SICNN_ConvNet <- torch::nn_module(
+  "SICNN_ConvNet",
   
   initialize = function(conv1,conv2,fc1,fc2,device = device) {
     self$problem_type <- 'multiclass classification'
@@ -96,12 +96,12 @@ LBBNN_ConvNet <- torch::nn_module(
   }
 )
 
-model <- LBBNN_ConvNet(conv_layer_1,conv_layer_2,
+model <- SICNN_ConvNet(conv_layer_1,conv_layer_2,
                        linear_layer_1,linear_layer_2,device)
 model$to(device = device)
 
-train_LBBNN(epochs = 20,LBBNN = model, lr = 0.001,train_dl = train_loader,
+train_SICNN(epochs = 20,SICNN = model, lr = 0.001,train_dl = train_loader,
             device = device)
 
-validate_LBBNN(model,num_samples = 10,test_dl = test_loader,device = device)
+validate_SICNN(model,num_samples = 10,test_dl = test_loader,device = device)
 print(model)

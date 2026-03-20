@@ -4,7 +4,7 @@ library(torch)
 #' @param input_dim numeric vector, the dimensionality of each layer. The first item is the input vector size.
 #' @param transform_type Type of transformation. Currently only RNVP is implemented.
 #' @param num_transforms integer, how many layers of transformations to include in the flow.
-#' @description Used in\code{LBBNN_Net} when the argument \code{flow = TRUE}.
+#' @description Used in\code{SICNN_Net} when the argument \code{flow = TRUE}.
 #' Contains a \code{torch::nn_module} where the initial vector gets transformed through 
 #' all the layers in the module. Also computes the log-determinant of the Jacobian for the entire 
 #' transformation, which is just the sum of log-determinant of the independent layers.

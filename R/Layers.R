@@ -1,9 +1,9 @@
 library(torch)
 
 
-#' @title Generate prior inclusion probabilities for the weights of a LBBNN layer (linear or convolutional).
+#' @title Generate prior inclusion probabilities for the weights of a SICNN layer (linear or convolutional).
 #' @description A function to generate prior probability values for 
-#' each weight in an LBBNN layer. The same probability is applied to all weights within a layer.
+#' each weight in an SICNN layer. The same probability is applied to all weights within a layer.
 #' @param x A number between 0 and 1.
 #' @return a numeric to be added to either (out_shape,in_shape) in case of linear layers
 #' or (out_channels,in_channels,kernel0,kernel1) in case of convolutional layers.
@@ -24,7 +24,7 @@ alpha_prior <- function(x) {
 
 #' @title Generate prior standard deviation for weights and biases of either linear or convolutional layers.
 #' @description A function to generate prior standard deviations for 
-#' each weight and bias in an LBBNN layer.
+#' each weight and bias in an SICNN layer.
 #' @param x A number greater than 0.
 #' @return a numeric to be added to either (out_shape,in_shape) in case of linear layers
 #' or (out_channels,in_channels,kernel0,kernel1) in case of convolutional layers
@@ -72,8 +72,8 @@ density_initialization <- function(lower,upper) {
 
 
 
-#' @title Class to generate an LBBNN feed forward layer
-#' @description This module implements a fully connected LBBNN layer.
+#' @title Class to generate an SICNN feed forward layer
+#' @description This module implements a fully connected SICNN layer.
 #' It supports:
 #' \itemize{
 #'   \item Prior inclusion probabilities for weights and biases in each layer.
@@ -95,13 +95,13 @@ density_initialization <- function(lower,upper) {
 #' @param conv_net logical, whether the layer is to be used in a convolutional net. 
 #' @examples
 #' \donttest{
-#' l1 <- LBBNN_Linear(in_features = 10,out_features = 5,prior_inclusion = 0.25,
+#' l1 <- SICNN_Linear(in_features = 10,out_features = 5,prior_inclusion = 0.25,
 #' standard_prior = 1,density_init = c(0,1),flow = FALSE)
 #' x <- torch::torch_rand(20,10,requires_grad = FALSE)
 #' output <- l1(x,MPM = FALSE) #the forward pass, output has shape (20,5)
 #' print(l1$kl_div()$item()) #compute KL-divergence after the forward pass
 #' }
-#' @return A \code{torch::nn_module} object representing a fully connected LBBNN layer. 
+#' @return A \code{torch::nn_module} object representing a fully connected SICNN layer. 
 #' The module has the following methods:
 #'   - \code{forward(input, MPM = FALSE)}: Computes activation (using the LRT at training time) of a batch of inputs. 
 #'   - \code{kl_div()}: Computes the KL-divergence.
@@ -109,8 +109,8 @@ density_initialization <- function(lower,upper) {
 #'  of the transformation.
 
 #' @export
-LBBNN_Linear <- torch::nn_module(
-  "LBBNN_Linear",
+SICNN_Linear <- torch::nn_module(
+  "SICNN_Linear",
   initialize = function(
     in_features, 
     out_features,
@@ -255,8 +255,11 @@ LBBNN_Linear <- torch::nn_module(
       
     }else {#median probability model
       if(deterministic){
-        w <- self$weight_mean * self$z_k
+        w <- self$weight_mean * self$alpha * self$z_k
         bias <- self$bias_mean
+        if(self$bias_inclusion_prob){
+          bias <- self$bias_mean * self$bias_alpha
+        }
         weight <- w * self$alpha_active_path
       }else{
         w <- torch::torch_normal(self$weight_mean * self$z_k, self$weight_sigma)
@@ -340,7 +343,7 @@ LBBNN_Linear <- torch::nn_module(
   
 )
 
-#' @title Class to generate an LBBNN convolutional layer.
+#' @title Class to generate an SICNN convolutional layer.
 #' @description
 #'  It supports:
 #' \itemize{
@@ -362,14 +365,14 @@ LBBNN_Linear <- torch::nn_module(
 #' @param device The device to be used. Default is CPU.
 #' @examples
 #' \donttest{
-#'layer <- LBBNN_Conv2d(in_channels = 1,out_channels = 32,kernel_size = c(3,3),
+#'layer <- SICNN_Conv2d(in_channels = 1,out_channels = 32,kernel_size = c(3,3),
 #'prior_inclusion = 0.2,standard_prior = 1,density_init = c(-10,10),device = 'cpu')
 #'x <-torch::torch_randn(100,1,28,28)
 #'out <-layer(x)
 #'print(dim(out))
 #'}
 #' @importFrom torch torch_empty torch_long torch_zeros torch_zeros_like with_no_grad torch_rand torch_randn torch_exp
-#' @return A \code{torch::nn_module} object representing a convolutional LBBNN layer. 
+#' @return A \code{torch::nn_module} object representing a convolutional SICNN layer. 
 #' The module has the following methods:
 #'   - \code{forward(input, MPM = FALSE)}: Computes activation (using the LRT at training time) of a batch of inputs. 
 #'   - \code{kl_div()}: Computes the KL-divergence.
@@ -377,8 +380,8 @@ LBBNN_Linear <- torch::nn_module(
 #'  of the transformation.
 
 #' @export
-LBBNN_Conv2d <- torch::nn_module(
-  "LBBNN_Conv2d",
+SICNN_Conv2d <- torch::nn_module(
+  "SICNN_Conv2d",
   initialize = function(in_channels, out_channels,kernel_size,prior_inclusion,
                         standard_prior,density_init,
                         flow = FALSE,num_transforms = 2, hidden_dims = c(200,200),device = 'cpu') {
@@ -491,7 +494,7 @@ LBBNN_Conv2d <- torch::nn_module(
     }else {#only sample from weights with inclusion prob > 0.5 aka the median probability model 
       gamma <-(self$alpha$clone()$detach()> 0.5) * 1.
       if(deterministic){
-        w <- self$weight_mean*z_k$view(c(-1,1,1,1))
+        w <- self$weight_mean * self$alpha * z_k$view(c(-1,1,1,1))
         bias <- self$bias_mean
       }else{
         w <- torch::torch_normal(self$weight_mean*z_k$view(c(-1,1,1,1)), self$weight_sigma)

@@ -1,22 +1,22 @@
 library(torch)
 
-#' @title Train an instance of \code{LBBNN_Net}.
+#' @title Train an instance of \code{SICNN_Net}.
 #' @description
 #' Function that for each epoch iterates through each mini-batch, computing
 #' the loss and using back-propagation to update the network parameters.
 #'
-#' By default, \code{train_LBBNN} uses the original variational Bayes objective:
-#' the data-fit loss plus the KL-divergence term from \code{LBBNN$kl_div()}.
+#' By default, \code{train_SICNN} uses the original variational Bayes objective:
+#' the data-fit loss plus the KL-divergence term from \code{SICNN$kl_div()}.
 #' Alternatively, setting \code{criterion = "SIC"} replaces the KL term with the
 #' smooth BIC-type penalty of O’Neill and Burke (2023), i.e.
 #' \deqn{ -\ell(\theta) + \tfrac{1}{2}\log(n_\mathrm{train}) \|\theta\|_{0,\epsilon}, }
 #' where \eqn{\|\theta\|_{0,\epsilon}} is the smooth L0 norm computed via
-#' \code{LBBNN$smooth_param_count(epsilon)} and \eqn{n_\mathrm{train}} is the number
+#' \code{SICNN$smooth_param_count(epsilon)} and \eqn{n_\mathrm{train}} is the number
 #' of training observations. During training with \code{criterion = "SIC"}, an
 #' \eqn{\epsilon}-telescope is implemented across epochs, as recommended in the paper.
 #'
 #' @param epochs integer, total number of epochs to train for, where one epoch is a pass through the entire training dataset (all mini batches).
-#' @param LBBNN An instance of  \code{LBBNN_Net}, to be trained.
+#' @param SICNN An instance of  \code{SICNN_Net}, to be trained.
 #' @param lr numeric, the learning rate to be used in the Adam optimizer.
 #' @param train_dl An instance of \code{torch::dataloader} consisting of a tensor dataset
 #' with features and targets.
@@ -57,8 +57,8 @@ library(torch)
 #'inclusion_priors <-c(0.9,0.2) 
 #'inclusion_inits <- matrix(rep(c(-10,10),2),nrow = 2,ncol = 2)
 #'stds <- c(1.0,1.0)
-#'model <- LBBNN_Net(problem,sizes,inclusion_priors,stds,inclusion_inits,flow = FALSE)
-#'output <- train_LBBNN(epochs = 1,LBBNN = model, lr = 0.01,train_dl = train_loader)
+#'model <- SICNN_Net(problem,sizes,inclusion_priors,stds,inclusion_inits,flow = FALSE)
+#'output <- train_SICNN(epochs = 1,SICNN = model, lr = 0.01,train_dl = train_loader)
 #'}
 #' @return A list with elements (returned invisibly):
 #'   \describe{
@@ -67,8 +67,8 @@ library(torch)
 #'     \item{density}{Vector of network densities per epoch.}
 #'   }
 #'@export
-train_LBBNN <- function(epochs,
-                        LBBNN,
+train_SICNN <- function(epochs,
+                        SICNN,
                         lr,
                         train_dl,
                         device = "cpu",
@@ -80,7 +80,8 @@ train_LBBNN <- function(epochs,
                         epsilon_T = 1e-5,
                         steps_T = 100,
                         sic_threshold = 0.5,
-                        sic_report_epsilon = c("current", "final")){
+                        sic_report_epsilon = c("final", "current"),
+                        restarts = 1){
   criterion <- match.arg(criterion)
   sic_report_epsilon <- match.arg(sic_report_epsilon)
   if (criterion == "SIC") {
@@ -96,43 +97,76 @@ train_LBBNN <- function(epochs,
     # exponential epsilon-telescope as in O'Neill and Burke (2023)
     eps_seq <- epsilon_1 * (epsilon_T/epsilon_1) ^ ((0:(steps_T - 1)) / max(1, steps_T - 1))
     log_n_half <- 0.5 * log(n_train)
-    LBBNN$criterion_trained <- "SIC"
-    LBBNN$sic_epsilon_T <- epsilon_T
-    LBBNN$sic_epsilon_1 <- epsilon_1
-    LBBNN$sic_steps_T <- steps_T
-    LBBNN$sic_threshold <- sic_threshold
-    LBBNN$sic_report_epsilon <- sic_report_epsilon
+    SICNN$criterion_trained <- "SIC"
+    SICNN$sic_epsilon_T <- epsilon_T
+    SICNN$sic_epsilon_1 <- epsilon_1
+    SICNN$sic_steps_T <- steps_T
+    SICNN$sic_threshold <- sic_threshold
+    SICNN$sic_report_epsilon <- sic_report_epsilon
   }
   if (criterion == "VI") {
-    LBBNN$criterion_trained <- "VI"
+    SICNN$criterion_trained <- "VI"
   }
-  opt <- torch::optim_adam(LBBNN$parameters,lr = lr)
-  deterministic_sic <- (!is.null(LBBNN$criterion_trained) && LBBNN$criterion_trained == "SIC")
-  accs <- c()
-  losses <-c()
-    density <- c()
-  sparsity_pct <- c()
-  active_weights <- c()
-  removed_weights <- c()
-  total_weights <- c()
-  out_layer_density <- c()
-  active_path_dens <-c()
+  opt <- torch::optim_adam(SICNN$parameters,lr = lr)
+  deterministic_sic <- (!is.null(SICNN$criterion_trained) && SICNN$criterion_trained == "SIC")
   if(! is.null(scheduler)){
     if(scheduler == 'step'){
       sl <- torch::lr_step(opt,step_size = sch_step_size,gamma = 0.1)
     }
   }
-  LBBNN$elapsed_time <- 0
+  
+  SICNN$elapsed_time <- 0
   start <- base::proc.time()
-  for (epoch in 1:epochs) {
-  #  if(LBBNN$input_skip){LBBNN$compute_paths_input_skip()}
-  #  else(LBBNN$compute_paths)
+  
+  best_loss <- Inf
+  best_state <- NULL
+  best_l <- NULL
+  
+  for (r in 1:restarts) {
+    if (restarts > 1) {
+      cat(sprintf("\n--- Restart %d/%d ---\n", r, restarts))
+      p_seq <- seq(0.01, 0.99, length.out = restarts)
+      p <- p_seq[r]
+      lambda_mean <- log(p / (1 - p))
+      
+      apply_sic_mask <- function(layer, prob) {
+        layer$density_init <- c(lambda_mean - 0.5, lambda_mean + 0.5)
+        layer$reset_parameters()
+        if (criterion == "SIC") {
+          mask <- (torch::torch_rand_like(layer$weight_mean) < prob)$to(torch::torch_float32())
+          layer$weight_mean$data()$mul_(mask)
+        }
+      }
+      
+      for (l in SICNN$layers$children) {
+        apply_sic_mask(l, p)
+      }
+      apply_sic_mask(SICNN$out_layer, p)
+      opt <- torch::optim_adam(SICNN$parameters, lr = lr)
+      if(!is.null(scheduler)){
+        if(scheduler == 'step'){
+          sl <- torch::lr_step(opt,step_size = sch_step_size,gamma = 0.1)
+        }
+      }
+    }
+    
+    accs <- c()
+    losses <-c()
+    density <- c()
+    sparsity_pct <- c()
+    active_weights <- c()
+    removed_weights <- c()
+    total_weights <- c()
+    
+    for (epoch in 1:epochs) {
+  #  if(SICNN$input_skip){SICNN$compute_paths_input_skip()}
+  #  else(SICNN$compute_paths)
     if(epoch == epochs){ #only need these at the last epoch for residuals
-     LBBNN$y <- c()
-    LBBNN$r <- c()}
+     SICNN$y <- c()
+    SICNN$r <- c()}
  
     
-    LBBNN$train()
+    SICNN$train()
     corrects <- 0
     totals <- 0
     train_loss <- c()
@@ -147,52 +181,58 @@ train_LBBNN <- function(epochs,
 
       opt$zero_grad()
       data <- b[[1]]$to(device = device)
-      output <- LBBNN(data,MPM=FALSE, deterministic = deterministic_sic)
+      output <- SICNN(data,MPM=FALSE, deterministic = deterministic_sic)
       target <- b[[2]]$to(device=device)
       if(epoch == epochs){ #add the targets and outputs to y and r
-        LBBNN$y <- c(LBBNN$y, as.numeric(target$clone()$detach()$cpu()))
-        LBBNN$r <- c(LBBNN$r,as.numeric(output$clone()$detach()$squeeze()$cpu()))}
+        SICNN$y <- c(SICNN$y, as.numeric(target$clone()$detach()$cpu()))
+        SICNN$r <- c(SICNN$r,as.numeric(output$clone()$detach()$squeeze()$cpu()))}
       
       
  
-      if(LBBNN$problem_type == 'multiclass classification'| LBBNN$problem_type == 'MNIST'){ #nll loss needs float tensors but bce loss needs long tensors 
+      if(SICNN$problem_type == 'multiclass classification'| SICNN$problem_type == 'MNIST'){ #nll loss needs float tensors but bce loss needs long tensors 
         target <- torch::torch_tensor(target,dtype = torch::torch_long())
       }
       else(output <- output$squeeze()) #remove last dimension from binary classifiction or regression
-      data_loss <- LBBNN$loss_fn(output, target)
+      data_loss <- SICNN$loss_fn(output, target)
       if (criterion == "VI") {
-        loss <- data_loss + LBBNN$kl_div() / length(train_dl)
+        loss <- data_loss + SICNN$kl_div() / length(train_dl)
+        loss_report <- loss$item()
       } else {
-        k_smooth <- LBBNN$smooth_param_count(epsilon)
-        loss <- data_loss + log_n_half * k_smooth
+        k_smooth <- SICNN$smooth_param_count(epsilon)
+        loss <- data_loss + (log_n_half * k_smooth) / length(train_dl)
+        
+        # Calculate loss referencing the strict final epsilon_T so the reported loss visually improves
+        # without being confounded by the changing epsilon mapping.
+        k_smooth_T <- SICNN$smooth_param_count(SICNN$sic_epsilon_T)
+        loss_report <- data_loss$item() + (log_n_half * k_smooth_T$item()) / length(train_dl)
       }
     
       
-      if(LBBNN$problem_type == 'multiclass classification' | LBBNN$problem_type == 'MNIST'){
+      if(SICNN$problem_type == 'multiclass classification' | SICNN$problem_type == 'MNIST'){
         prediction <-max.col(output)
         corrects <- corrects + sum(prediction == target)
         totals <- totals + length(target)
-        train_loss <- c(train_loss,loss$item())
+        train_loss <- c(train_loss,loss_report)
     
         
         
         
       }
-      else if(LBBNN$problem_type == 'binary classification'){
+      else if(SICNN$problem_type == 'binary classification'){
         corrects<-corrects + sum((output > 0.5) == target)
         totals <- totals + length(target)
-        train_loss <- c(train_loss,loss$item())
+        train_loss <- c(train_loss,loss_report)
         
         
         
         
       }
-      else if(LBBNN$problem_type == 'custom')
+      else if(SICNN$problem_type == 'custom')
       {
-        train_loss <- c(train_loss,loss$item())
+        train_loss <- c(train_loss,loss_report)
       }
       else{#for regression
-        train_loss <- c(train_loss,loss$item())
+        train_loss <- c(train_loss,loss_report)
         
       }
       loss$backward()
@@ -204,16 +244,16 @@ train_LBBNN <- function(epochs,
     if ( !is.null(scheduler)){sl$step()}
   
     train_acc <- corrects / totals
-    if(LBBNN$problem_type != 'regression'){
+    if(SICNN$problem_type != 'regression'){
       sic_counts <- NULL
       density_val <- NULL
       sparsity_val <- NULL
       if (criterion == "SIC") {
-        sic_counts <- LBBNN$sic_weight_counts(epsilon = epsilon_report, threshold = sic_threshold)
+        sic_counts <- SICNN$sic_weight_counts(epsilon = epsilon_report, threshold = sic_threshold)
         density_val <- as.numeric(sic_counts["active"] / sic_counts["total"])
         sparsity_val <- as.numeric(sic_counts["removed"] / sic_counts["total"]) * 100
       } else {
-        density_val <- as.numeric(LBBNN$density())
+        density_val <- as.numeric(SICNN$density())
       }
       message(sprintf(
         "\nEpoch %d, training: loss = %3.5f, acc = %3.5f, density = %3.5f%s",
@@ -225,16 +265,16 @@ train_LBBNN <- function(epochs,
       accs <- c(accs,train_acc$item())
       losses <- c(losses,mean(train_loss))
     }
-    if(LBBNN$problem_type == 'regression'){
+    if(SICNN$problem_type == 'regression'){
       sic_counts <- NULL
       density_val <- NULL
       sparsity_val <- NULL
       if (criterion == "SIC") {
-        sic_counts <- LBBNN$sic_weight_counts(epsilon = epsilon_report, threshold = sic_threshold)
+        sic_counts <- SICNN$sic_weight_counts(epsilon = epsilon_report, threshold = sic_threshold)
         density_val <- as.numeric(sic_counts["active"] / sic_counts["total"])
         sparsity_val <- as.numeric(sic_counts["removed"] / sic_counts["total"]) * 100
       } else {
-        density_val <- as.numeric(LBBNN$density())
+        density_val <- as.numeric(SICNN$density())
       }
       message(sprintf(
         "\nEpoch %d, training: loss = %3.5f, density = %3.5f%s \n",
@@ -245,41 +285,52 @@ train_LBBNN <- function(epochs,
       losses <- c(losses,mean(train_loss))
     }
     if (criterion == "SIC") {
-      sic_counts <- LBBNN$sic_weight_counts(epsilon = epsilon_report, threshold = sic_threshold)
+      sic_counts <- SICNN$sic_weight_counts(epsilon = epsilon_report, threshold = sic_threshold)
       active_weights <- c(active_weights, as.numeric(sic_counts["active"]))
       total_weights <- c(total_weights, as.numeric(sic_counts["total"]))
       removed_weights <- c(removed_weights, as.numeric(sic_counts["removed"]))
       sparsity_pct <- c(sparsity_pct, as.numeric(sic_counts["removed"] / sic_counts["total"]) * 100)
       density <- c(density, as.numeric(sic_counts["active"] / sic_counts["total"]))
     } else {
-      density <- c(density, LBBNN$density())
+      density <- c(density, SICNN$density())
       # keep sparsity outputs empty for VI
     }
 
 
+    }
     
+    if (criterion == "SIC") {
+      l = list('accs' = accs, 'loss' = losses, 'density' = density, 'sparsity_pct' = sparsity_pct, 'active_weights' = active_weights, 'removed_weights' = removed_weights, 'total_weights' = total_weights)
+    } else {
+      l = list('accs' = accs,'loss' = losses,'density' = density)
+    }
+    
+    final_run_loss <- mean(train_loss)
+    if (final_run_loss < best_loss) {
+      best_loss <- final_run_loss
+      state_d <- SICNN$state_dict()
+      best_state <- lapply(state_d, function(x) x$clone()$detach()$cpu())
+      best_l <- l
+    }
   }
-  if (criterion == "SIC") {
-    l = list('accs' = accs,
-             'loss' = losses,
-             'density' = density,
-             'sparsity_pct' = sparsity_pct,
-             'active_weights' = active_weights,
-             'removed_weights' = removed_weights,
-             'total_weights' = total_weights)
-  } else {
-    l = list('accs' = accs,'loss' = losses,'density' = density)
+  
+  if (restarts > 1) {
+    cat(sprintf("\nLoading best model (loss: %f)\n", best_loss))
+    SICNN$load_state_dict(best_state)
+    SICNN$to(device = device)
+    l <- best_l
   }
+
   time <- base::proc.time() - start 
-  LBBNN$elapsed_time <- time[[3]]
+  SICNN$elapsed_time <- time[[3]]
   invisible(l)
 }
 
-#' @title Validate a trained LBBNN model.
+#' @title Validate a trained SICNN model.
 #' @description Computes metrics on a validation dataset without computing gradients.
 #' Supports model averaging (recommended) by sampling from the variational posterior (\code{num_samples} > 1) 
 #' to improve predictions. Returns metrics for both the full model and the sparse model. 
-#' @param LBBNN An instance of a trained \code{LBBNN_Net} to be validated.
+#' @param SICNN An instance of a trained \code{SICNN_Net} to be validated.
 #' @param num_samples integer, the number of samples from the variational posterior to be used for model averaging.
 #' @param test_dl An instance of \code{torch::dataloader}, containing the validation data.
 #' @param device The device to perform validation on. Default is 'cpu'; other options include 'gpu' and 'mps'.
@@ -293,9 +344,9 @@ train_LBBNN <- function(epochs,
 #'     \item{density_active_path}{Proportion of weights with inclusion probability > 0.5 after removing weights not in active paths.}
 #'   }     
 #' @export
-validate_LBBNN <- function(LBBNN,num_samples,test_dl,device = 'cpu'){
-  LBBNN$eval()
-  deterministic_sic <- (!is.null(LBBNN$criterion_trained) && LBBNN$criterion_trained == "SIC")
+validate_SICNN <- function(SICNN,num_samples,test_dl,device = 'cpu'){
+  SICNN$eval()
+  deterministic_sic <- (!is.null(SICNN$criterion_trained) && SICNN$criterion_trained == "SIC")
   # Deterministic SIC: multiple samples are redundant.
   if(deterministic_sic){ num_samples <- 1 }
   corrects <- 0
@@ -305,13 +356,24 @@ validate_LBBNN <- function(LBBNN,num_samples,test_dl,device = 'cpu'){
   val_loss_mpm <-c()
   val_loss_mpm2<-c()
   out_shape <- 1 #if binary classification or regression
-  if(LBBNN$input_skip){LBBNN$compute_paths_input_skip()} #need this to get active paths to compute mpm
-  else(LBBNN$compute_paths)
-  LBBNN$computed_paths <- TRUE
+  if (SICNN$input_skip) {
+    if (!is.null(SICNN$criterion_trained) && SICNN$criterion_trained == "SIC") {
+      SICNN$compute_paths_input_skip(epsilon = SICNN$sic_epsilon_T, threshold = SICNN$sic_threshold)
+    } else {
+      SICNN$compute_paths_input_skip()
+    }
+  } else {
+    if (!is.null(SICNN$criterion_trained) && SICNN$criterion_trained == "SIC") {
+      SICNN$compute_paths(epsilon = SICNN$sic_epsilon_T, threshold = SICNN$sic_threshold)
+    } else {
+      SICNN$compute_paths()
+    }
+  }
+  SICNN$computed_paths <- TRUE
   torch::with_no_grad({ 
     coro::loop(for (b in test_dl){
       target <- b[[2]]$to(device=device)
-      if(LBBNN$problem_type == 'multiclass classification'| LBBNN$problem_type == 'MNIST'){ #nll loss needs float tensors but bce loss needs long tensors 
+      if(SICNN$problem_type == 'multiclass classification'| SICNN$problem_type == 'MNIST'){ #nll loss needs float tensors but bce loss needs long tensors 
         target <- torch::torch_tensor(target,dtype = torch::torch_long())
         out_shape <- max(target)$item()
       }
@@ -319,14 +381,14 @@ validate_LBBNN <- function(LBBNN,num_samples,test_dl,device = 'cpu'){
       output_mpm <- torch::torch_zeros_like(outputs)
       for(i in 1:num_samples){
         data <- b[[1]]$to(device = device)
-        outputs[i]<- LBBNN(data,MPM=FALSE, deterministic = (!is.null(LBBNN$criterion_trained) && LBBNN$criterion_trained == "SIC"))
-        output_mpm[i] <- LBBNN(data,MPM=TRUE, deterministic = (!is.null(LBBNN$criterion_trained) && LBBNN$criterion_trained == "SIC"))
+        outputs[i]<- SICNN(data,MPM=FALSE, deterministic = (!is.null(SICNN$criterion_trained) && SICNN$criterion_trained == "SIC"))
+        output_mpm[i] <- SICNN(data,MPM=TRUE, deterministic = (!is.null(SICNN$criterion_trained) && SICNN$criterion_trained == "SIC"))
         
       }
       out_full <-outputs$mean(1) #average over num_samples dimension
       out_mpm <-output_mpm$mean(1)
       
-      if(LBBNN$problem_type == 'multiclass classification' | LBBNN$problem_type == 'MNIST'){
+      if(SICNN$problem_type == 'multiclass classification' | SICNN$problem_type == 'MNIST'){
         prediction <-max.col(out_full)
         corrects <- corrects + sum(prediction == target)
         totals <- totals + length(target)
@@ -338,7 +400,7 @@ validate_LBBNN <- function(LBBNN,num_samples,test_dl,device = 'cpu'){
         
       }
       
-      else if(LBBNN$problem_type == 'binary classification'){
+      else if(SICNN$problem_type == 'binary classification'){
         out_full <- out_full$squeeze()
         out_mpm <-out_mpm$squeeze()
         corrects<-corrects + sum((out_full > 0.5) == target)
@@ -364,26 +426,26 @@ validate_LBBNN <- function(LBBNN,num_samples,test_dl,device = 'cpu'){
   acc_sparse <- corrects_sparse / totals
   
   # Density reporting depends on how the model was trained.
-  if(!is.null(LBBNN$criterion_trained) && LBBNN$criterion_trained == "SIC"){
-    epsilon_used <- if(!is.null(LBBNN$sic_epsilon_T)) LBBNN$sic_epsilon_T else 1e-5
-    thr_used <- if(!is.null(LBBNN$sic_threshold)) LBBNN$sic_threshold else 0.5
-    density <- LBBNN$sic_density(epsilon = epsilon_used, threshold = thr_used)
-    density2 <- LBBNN$sic_density_active_path(epsilon = epsilon_used, threshold = thr_used)
-    sic_counts <- LBBNN$sic_weight_counts(epsilon = epsilon_used, threshold = thr_used)
+  if(!is.null(SICNN$criterion_trained) && SICNN$criterion_trained == "SIC"){
+    epsilon_used <- if(!is.null(SICNN$sic_epsilon_T)) SICNN$sic_epsilon_T else 1e-5
+    thr_used <- if(!is.null(SICNN$sic_threshold)) SICNN$sic_threshold else 0.5
+    density <- SICNN$sic_density(epsilon = epsilon_used, threshold = thr_used)
+    density2 <- SICNN$sic_density_active_path(epsilon = epsilon_used, threshold = thr_used)
+    sic_counts <- SICNN$sic_weight_counts(epsilon = epsilon_used, threshold = thr_used)
     sparsity_pct <- as.numeric(sic_counts["removed"] / sic_counts["total"]) * 100
     active_weights <- as.numeric(sic_counts["active"])
     removed_weights <- as.numeric(sic_counts["removed"])
     total_weights <- as.numeric(sic_counts["total"])
   } else {
-    density <- LBBNN$density()
-    density2 <- LBBNN$density_active_path()
+    density <- SICNN$density()
+    density2 <- SICNN$density_active_path()
   }
-  if(LBBNN$problem_type!='regression'){
+  if(SICNN$problem_type!='regression'){
     l = list('accuracy_full_model' = acc_full$item(),
              'accuracy_sparse' = acc_sparse$item(),
              'density'=density,
              'density_active_path'=density2)
-    if(!is.null(LBBNN$criterion_trained) && LBBNN$criterion_trained == "SIC"){
+    if(!is.null(SICNN$criterion_trained) && SICNN$criterion_trained == "SIC"){
       l$sparsity_pct <- sparsity_pct
       l$active_weights <- active_weights
       l$removed_weights <- removed_weights
@@ -395,7 +457,7 @@ validate_LBBNN <- function(LBBNN,num_samples,test_dl,device = 'cpu'){
              'validation_error_sparse' = mean(val_loss_mpm),
              'density'=density,
              'density_active_path'=density2)
-    if(!is.null(LBBNN$criterion_trained) && LBBNN$criterion_trained == "SIC"){
+    if(!is.null(SICNN$criterion_trained) && SICNN$criterion_trained == "SIC"){
       l$sparsity_pct <- sparsity_pct
       l$active_weights <- active_weights
       l$removed_weights <- removed_weights

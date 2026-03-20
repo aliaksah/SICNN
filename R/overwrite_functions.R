@@ -4,7 +4,7 @@ require(graphics)
 #' @title Function that checks how many times inputs are included, and from which layer. Used in summary function.
 #' @description Useful when the number of inputs and/or hidden neurons are very
 #' large, and direct visualization of the network is difficult. 
-#' @param model An instance of \code{LBBNN_Net} where \code{input_skip = TRUE}.
+#' @param model An instance of \code{SICNN_Net} where \code{input_skip = TRUE}.
 #' @return A matrix of shape (p, L-1) where p is the number of input variables
 #' and L the total number of layers (including input and output), with each element being 1 if the variable is included
 #' or 0 if not included. 
@@ -44,10 +44,10 @@ get_input_inclusions <- function(model){
 }
 
 
-#' @title Summary of LBBNN fit
-#' @description Summary method for objects of the \code{LBBNN_Net} class. 
+#' @title Summary of SICNN fit
+#' @description Summary method for objects of the \code{SICNN_Net} class. 
 #' Only applies to objects trained with \code{input_skip = TRUE}.
-#' @param object An object of class \code{LBBNN_Net}.
+#' @param object An object of class \code{SICNN_Net}.
 #' @param ... further arguments passed to or from other methods.
 #' @details
 #' The returned table combines two types of information:
@@ -71,13 +71,13 @@ get_input_inclusions <- function(model){
 #'inclusion_priors <-c(0.9,0.2) 
 #'inclusion_inits <- matrix(rep(c(-10,10),2),nrow = 2,ncol = 2)
 #'stds <- c(1.0,1.0)
-#'model <- LBBNN_Net(problem,sizes,inclusion_priors,stds,inclusion_inits,flow = FALSE,
+#'model <- SICNN_Net(problem,sizes,inclusion_priors,stds,inclusion_inits,flow = FALSE,
 #'input_skip = TRUE)
-#'train_LBBNN(epochs = 1,LBBNN = model, lr = 0.01,train_dl = train_loader)
+#'train_SICNN(epochs = 1,SICNN = model, lr = 0.01,train_dl = train_loader)
 #'summary(model)
 #'}
 #' @export
-summary.LBBNN_Net <- function(object,
+summary.SICNN_Net <- function(object,
                               criterion = c("VI", "SIC"),
                               epsilon = 1e-5,
                               threshold = 0.5,
@@ -90,7 +90,21 @@ summary.LBBNN_Net <- function(object,
   L <- length(object$sizes) - 1 # number of layers (weight matrices incl. output)
 
   if(criterion == "VI"){
-    if(object$computed_paths == FALSE){object$compute_paths_input_skip()} 
+    if(object$computed_paths == FALSE){
+      if (object$input_skip) {
+        if (!is.null(object$criterion_trained) && object$criterion_trained == "SIC") {
+          object$compute_paths_input_skip(epsilon = object$sic_epsilon_T, threshold = object$sic_threshold)
+        } else {
+          object$compute_paths_input_skip()
+        }
+      } else {
+        if (!is.null(object$criterion_trained) && object$criterion_trained == "SIC") {
+          object$compute_paths(epsilon = object$sic_epsilon_T, threshold = object$sic_threshold)
+        } else {
+          object$compute_paths()
+        }
+      }
+    } 
     inclusions <- get_input_inclusions(object) # (p,L)
 
     # average inclusion probabilities of each layer (from alpha values)
@@ -118,7 +132,7 @@ summary.LBBNN_Net <- function(object,
     alpha_means <- cbind(alpha_means,a_avg)
     summary_out <- as.data.frame(cbind(inclusions,alpha_means))
 
-    cat("Summary of LBBNN_Net object:\n")
+    cat("Summary of SICNN_Net object:\n")
     cat("-----------------------------------\n")
     cat("Shows the number of times each variable was included from each layer\n")
     cat("-----------------------------------\n")
@@ -211,7 +225,7 @@ summary.LBBNN_Net <- function(object,
     summary_out <- as.data.frame(cbind(active_counts, active_props, a_avg))
     colnames(summary_out)[(ncol(active_counts)+ncol(active_props)+1)] <- "a_avg"
 
-    cat("Summary of LBBNN_Net object (SIC-based):\n")
+    cat("Summary of SICNN_Net object (SIC-based):\n")
     cat("-----------------------------------\n")
     cat("L{l}: number of active weights connected to input xj in layer l\n")
     cat("-----------------------------------\n")
@@ -226,9 +240,9 @@ summary.LBBNN_Net <- function(object,
 }
 
 
-#' @title Residuals from LBBNN fit
-#' @description Residuals from an object of the \code{LBBNN_Net} class.
-#' @param object An object of class \code{LBBNN_Net}.
+#' @title Residuals from SICNN fit
+#' @description Residuals from an object of the \code{SICNN_Net} class.
+#' @param object An object of class \code{SICNN_Net}.
 #' @param type Currently only 'response' is implemented i.e. y_true - y_predicted.
 #' @param ... further arguments passed to or from other methods.
 #' @return A numeric vector of residuals (\code{y_true - y_predicted})
@@ -244,13 +258,13 @@ summary.LBBNN_Net <- function(object,
 #'inclusion_priors <-c(0.9,0.2) 
 #'inclusion_inits <- matrix(rep(c(-10,10),2),nrow = 2,ncol = 2)
 #'stds <- c(1.0,1.0)
-#'model <- LBBNN_Net(problem,sizes,inclusion_priors,stds,inclusion_inits,flow = FALSE,
+#'model <- SICNN_Net(problem,sizes,inclusion_priors,stds,inclusion_inits,flow = FALSE,
 #'input_skip = TRUE)
-#'train_LBBNN(epochs = 1,LBBNN = model, lr = 0.01,train_dl = train_loader)
+#'train_SICNN(epochs = 1,SICNN = model, lr = 0.01,train_dl = train_loader)
 #'residuals(model)
 #'}
 #' @export
-residuals.LBBNN_Net <- function(object,type = c('response'), ...) {
+residuals.SICNN_Net <- function(object,type = c('response'), ...) {
   y_true <- object$y
   y_predicted <- object$r
   if(type == 'response'){
@@ -263,12 +277,12 @@ residuals.LBBNN_Net <- function(object,type = c('response'), ...) {
 }
 
 
-#' @title Get model coefficients (local explanations) of an \code{LBBNN_Net} object
+#' @title Get model coefficients (local explanations) of an \code{SICNN_Net} object
 #' @description Given an input sample x_1,... x_j (with j the number of variables), the local explanation is found by 
 #' considering active paths. If relu activation functions are assumed, each path is a piecewise
 #' linear function, so the contribution for x_j is just the sum of the weights associated with the paths connecting x_j to the output. 
 #' The contributions are found by taking the gradient wrt x.   
-#' @param object an object of class \code{LBBNN_Net}.
+#' @param object an object of class \code{SICNN_Net}.
 #' @param dataset Either a \code{torch::dataloader} object, or a \code{torch::torch_tensor} object. 
 #' The former is assumed to be the same \code{torch::dataloader} used for training or testing.
 #' The latter can be any user-defined data.
@@ -303,13 +317,13 @@ residuals.LBBNN_Net <- function(object,type = c('response'), ...) {
 #'inclusion_priors <-c(0.9,0.2) 
 #'inclusion_inits <- matrix(rep(c(-10,10),2),nrow = 2,ncol = 2)
 #'stds <- c(1.0,1.0)
-#'model <- LBBNN_Net(problem,sizes,inclusion_priors,stds,inclusion_inits,flow = FALSE,
+#'model <- SICNN_Net(problem,sizes,inclusion_priors,stds,inclusion_inits,flow = FALSE,
 #'input_skip = TRUE)
-#'train_LBBNN(epochs = 1,LBBNN = model, lr = 0.01,train_dl = train_loader)
+#'train_SICNN(epochs = 1,SICNN = model, lr = 0.01,train_dl = train_loader)
 #'coef(model,dataset = x, num_data = 1)
 #'}
 #' @export
-coef.LBBNN_Net <- function(object,dataset,inds = NULL,output_neuron = 1,num_data = 1,num_samples = 10, ...) {
+coef.SICNN_Net <- function(object,dataset,inds = NULL,output_neuron = 1,num_data = 1,num_samples = 10, ...) {
   if(output_neuron > object$sizes[length(object$sizes)])stop(paste('output_neuron =',output_neuron, 'can not be greater than' ,object$sizes[length(object$sizes)]))
   if(is.null(inds)){
     all_means <- matrix(nrow = object$sizes[1],ncol = num_data)
@@ -393,9 +407,9 @@ coef.LBBNN_Net <- function(object,dataset,inds = NULL,output_neuron = 1,num_data
 }
 
 
-#'@title Obtain predictions from the variational posterior of an \code{LBBNN model}
-#'@description Draw from the (variational) posterior distribution of a trained \code{LBBNN_Net} object.
-#'@param object A trained \code{LBBNN_Net} object
+#'@title Obtain predictions from the variational posterior of an \code{SICNN model}
+#'@description Draw from the (variational) posterior distribution of a trained \code{SICNN_Net} object.
+#'@param object A trained \code{SICNN_Net} object
 #'@param mpm logical, whether to use the median probability model.
 #'@param newdata A \code{torch::dataloader} object containing the data with which to predict.
 #'@param draws integer, the number of samples to draw from the posterior. 
@@ -415,20 +429,29 @@ coef.LBBNN_Net <- function(object,dataset,inds = NULL,output_neuron = 1,num_data
 #'inclusion_priors <-c(0.9,0.2) 
 #'inclusion_inits <- matrix(rep(c(-10,10),2),nrow = 2,ncol = 2)
 #'stds <- c(1.0,1.0)
-#'model <- LBBNN_Net(problem,sizes,inclusion_priors,stds,inclusion_inits,flow = FALSE,
+#'model <- SICNN_Net(problem,sizes,inclusion_priors,stds,inclusion_inits,flow = FALSE,
 #'input_skip = TRUE)
-#'train_LBBNN(epochs = 1,LBBNN = model, lr = 0.01,train_dl = train_loader)
+#'train_SICNN(epochs = 1,SICNN = model, lr = 0.01,train_dl = train_loader)
 #'predict(model,mpm = FALSE,newdata = train_loader,draws = 1)
 #'}
 #' @export
-predict.LBBNN_Net <- function(object,newdata,mpm = FALSE,draws = 10,device = 'cpu',link = NULL,...){#should newdata be a dataloader or a dataset?
+predict.SICNN_Net <- function(object,newdata,mpm = FALSE,draws = 10,device = 'cpu',link = NULL,...){#should newdata be a dataloader or a dataset?
   object$eval()
   object$raw_output = TRUE #skip final sigmoid/softmax
   if(! object$computed_paths){
-    if(object$input_skip){object$compute_paths_input_skip()} #need this to get active paths to compute mpm
-    else(object$compute_paths)
-   
-    
+    if (object$input_skip) {
+      if (!is.null(object$criterion_trained) && object$criterion_trained == "SIC") {
+        object$compute_paths_input_skip(epsilon = object$sic_epsilon_T, threshold = object$sic_threshold)
+      } else {
+        object$compute_paths_input_skip()
+      }
+    } else {
+      if (!is.null(object$criterion_trained) && object$criterion_trained == "SIC") {
+        object$compute_paths(epsilon = object$sic_epsilon_T, threshold = object$sic_threshold)
+      } else {
+        object$compute_paths()
+      }
+    }
   }
   deterministic_sic <- (!is.null(object$criterion_trained) && object$criterion_trained == "SIC")
   if(class(newdata)[[1]] != 'dataloader')stop('Currently only torch::dataloader objects are supported for newdata')
@@ -450,13 +473,13 @@ predict.LBBNN_Net <- function(object,newdata,mpm = FALSE,draws = 10,device = 'cp
 
 
 
-#' @title Print summary of an \code{LBBNN_Net} object
+#' @title Print summary of an \code{SICNN_Net} object
 #' @description
-#' Provides a summary of a trained \code{LBBNN_Net} object.
+#' Provides a summary of a trained \code{SICNN_Net} object.
 #' Includes the model type (input-skip or not), whether normalizing flows
 #' are used, module and sub-module structure, number of trainable parameters, and prior
 #' variance and inclusion probabilities for the weights.
-#' @param x An object of class \code{LBBNN_Net}.
+#' @param x An object of class \code{SICNN_Net}.
 #' @param ... Further arguments passed to or from other methods.
 #' @return Invisibly returns the input \code{x}.
 #' @examples
@@ -471,20 +494,20 @@ predict.LBBNN_Net <- function(object,newdata,mpm = FALSE,draws = 10,device = 'cp
 #'inclusion_priors <-c(0.9,0.2) 
 #'inclusion_inits <- matrix(rep(c(-10,10),2),nrow = 2,ncol = 2)
 #'stds <- c(1.0,1.0)
-#'model <- LBBNN_Net(problem,sizes,inclusion_priors,stds,inclusion_inits,flow = FALSE,
+#'model <- SICNN_Net(problem,sizes,inclusion_priors,stds,inclusion_inits,flow = FALSE,
 #'input_skip = TRUE)
 #'print(model)
 #'}
 #' @export
-print.LBBNN_Net <- function(x, ...) {
+print.SICNN_Net <- function(x, ...) {
   
   module_info <- x$modules[[1]]
   
   # Model description
   model_name <- if (isTRUE(x$input_skip)) {
-    "LBBNN with input-skip"
+    "SICNN with input-skip"
   } else {
-    "LBBNN without input-skip"
+    "SICNN without input-skip"
   }
   
   flow <- if (isTRUE(x$flow)) {
@@ -495,7 +518,7 @@ print.LBBNN_Net <- function(x, ...) {
   
   # Header
   cat("\n========================================\n")
-  cat("          LBBNN Model Summary           \n")
+  cat("          SICNN Model Summary           \n")
   cat("========================================\n\n")
   
   # Module info
@@ -534,9 +557,9 @@ print.LBBNN_Net <- function(x, ...) {
 }
 
 
-#' @title Plot \code{LBBNN_Net} objects
+#' @title Plot \code{SICNN_Net} objects
 #' @description
-#' Given a trained \code{LBBNN_Net} model, this function produces either:
+#' Given a trained \code{SICNN_Net} model, this function produces either:
 #' \itemize{
 #'   \item \strong{Global plot}: a visualization of the network structure,
 #'     showing only the active paths.
@@ -544,19 +567,33 @@ print.LBBNN_Net <- function(x, ...) {
 #'     explanation for a single input sample, including error bars obtained
 #'     from Monte Carlo sampling of the network weights.
 #' }
-#' @param x An instance of \code{LBBNN_Net}.
+#' @param x An instance of \code{SICNN_Net}.
 #' @param type Either \code{"global"} or \code{"local"}.
 #' @param data If local is chosen, one sample must be provided to obtain the explanation. Must be a \code{torch::torch_tensor} of shape \code{(1,p)}.
 #' @param num_samples integer, how many samples to use for model averaging over the weights in case of local explanations.
 #' @param ... further arguments passed to or from other methods.
 #' @return No return value. Called for its side effects of producing a plot.
 #' @export
-plot.LBBNN_Net <- function(x,type = c('global','local'),data = NULL,num_samples = 100, ...) {
+plot.SICNN_Net <- function(x,type = c('global','local'),data = NULL,num_samples = 100, ...) {
   if(x$input_skip == FALSE)(stop('Plotting currently only implemented for input-skip'))
-  if(x$computed_paths == FALSE){x$compute_paths_input_skip()}
+  if(x$computed_paths == FALSE){
+    if (x$input_skip) {
+      if (!is.null(x$criterion_trained) && x$criterion_trained == "SIC") {
+        x$compute_paths_input_skip(epsilon = x$sic_epsilon_T, threshold = x$sic_threshold)
+      } else {
+        x$compute_paths_input_skip()
+      }
+    } else {
+      if (!is.null(x$criterion_trained) && x$criterion_trained == "SIC") {
+        x$compute_paths(epsilon = x$sic_epsilon_T, threshold = x$sic_threshold)
+      } else {
+        x$compute_paths()
+      }
+    }
+  }
   d <- match.arg(type)
   if(d == 'global'){
-    LBBNN_plot(x,...)
+    SICNN_plot(x,...)
   }
   else{
     if(is.null(data))stop('data must contain a sample to explain')

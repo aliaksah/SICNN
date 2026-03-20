@@ -2,10 +2,10 @@ library(torch)
 library(ggplot2)
 library(svglite)
 
-#' @title Function to get gradient based local explanations for input-skip LBBNNs.
+#' @title Function to get gradient based local explanations for input-skip SICNNs.
 #' @description Works by computing the gradient wrt to input, given we have
 #' relu activation functions.
-#' @param model A \code{LBBNN_Net} with input-skip
+#' @param model A \code{SICNN_Net} with input-skip
 #' @param input_data The data to be explained (one sample).
 #' @param num_samples integer, how many samples to use to produce credible intervals.
 #' @param magnitude If TRUE, only return explanations. If FALSE, multiply by input values.
@@ -97,9 +97,9 @@ quants <- function(x){ #maybe should allow for something other than 95% CI
 }
 
 
-#' @title Plot the gradient based local explanations for one sample with input-skip LBBNNs.
+#' @title Plot the gradient based local explanations for one sample with input-skip SICNNs.
 #' @description Plots the contribution of each covariate, and the prediction, with error bars. 
-#' @param model An instance of \code{LBBNN_Net} with input-skip enabled.
+#' @param model An instance of \code{SICNN_Net} with input-skip enabled.
 #' @param input_data The data to be explained (one sample).
 #' @param num_samples integer, how many sample to use to produce credible intervals.
 #' @param device character, the device to be trained on. Default is cpu. Can be 'mps' or 'gpu'.
