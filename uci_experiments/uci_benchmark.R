@@ -1,6 +1,7 @@
 library(SICNN)
 library(torch)
 library(randomForest)
+library(nnet)
 
 # Helper to prepare datasets from local CSVs
 prepare_uci_data <- function(name) {
@@ -86,20 +87,23 @@ run_experiment <- function(dataset_name, lr=0.01, penalty_mult=5, epochs=1000) {
     # regression: only feature normalization
     for(i in seq_len(ncol(features))) {
        r <- range(features[[i]], na.rm=TRUE)
-       if (r[2] != r[1]) features[[i]] <- (features[[i]] - r[1]) / (r[2] - r[1])
+       if (r[2] != r[1]) {
+         features[[i]] <- (features[[i]] - r[1]) / (r[2] - r[1])
+       } else {
+         features[[i]] <- 0 # Constant feature
+       }
     }
-    # Optional: target normalization was causing penalty dominance
-    # but we will keep it for numerical stability and just lower the penalty_mult.
-    # Actually, let's keep it but use a very small penalty_mult.
     r_y <- range(target)
-    target <- (target - r_y[1]) / (r_y[2] - r_y[1])
+    if (r_y[2] != r_y[1]) {
+      target <- (target - r_y[1]) / (r_y[2] - r_y[1])
+    }
   }
   
   df_norm <- cbind(features, target)
   colnames(df_norm)[ncol(df_norm)] <- "target"
   
   # DEBUG: print target range
-  cat(sprintf(" Target range: [%.3f, %.3f]\n", min(target, na.rm=TRUE), max(target, na.rm=TRUE)))
+  message(sprintf(" Target range: [%.3f, %.3f]\n", min(target, na.rm=TRUE), max(target, na.rm=TRUE)))
   
   n_total <- nrow(df_norm)
   n_train <- floor(n_total * 0.8)
@@ -129,13 +133,65 @@ run_experiment <- function(dataset_name, lr=0.01, penalty_mult=5, epochs=1000) {
   # Final validation on test set
   val <- validate_SICNN(SICNN = model, num_samples = 1, test_dl = loaders$test_loader, device="cpu")
   
-  metric_name <- if(type == "regression") "R2" else "Acc"
-  # Note: validate_SICNN currently returns 'accuracy_sparse' which is R2 for regression 
-  # based on the internal logic of the package (if user confirmed that).
-  metric_val <- val$accuracy_sparse
+  # Data for metrics
+  train_idx <- 1:floor(nrow(df_norm) * 0.8)
+  train_df <- df_norm[train_idx, ]
+  test_df <- df_norm[-train_idx, ]
+
+  if (type == "regression") {
+     # Calculate R2 for the sparse model manually
+     SIC_pred <- as.numeric(model(torch::torch_tensor(as.matrix(features[-train_idx, ]), dtype=torch::torch_float()), sparse=TRUE))
+     rss_sic <- sum((SIC_pred - test_df$target)^2, na.rm=TRUE)
+     tss_sic <- sum((test_df$target - mean(test_df$target, na.rm=TRUE))^2, na.rm=TRUE)
+     metric_val <- 1 - (rss_sic / tss_sic)
+  } else {
+     metric_val <- val$accuracy_sparse
+  }
   
-  cat(sprintf("Done. %s: %.3f, Sparsity: %.2f%%\n", metric_name, metric_val, val$sparsity_pct))
-  return(list(name=dataset_name, metric=metric_val, sparsity=val$sparsity_pct, p=p, type=type))
+  # --- Baselines ---
+  message(" Running Baselines...")
+  set.seed(42)
+  
+  lm_metric <- NA
+  rf_metric <- NA
+  
+  tryCatch({
+    if (type == "regression") {
+      lm_fit <- lm(target ~ ., data = train_df)
+      lm_pred <- predict(lm_fit, test_df)
+      rss <- sum((lm_pred - test_df$target)^2, na.rm=TRUE)
+      tss <- sum((test_df$target - mean(test_df$target, na.rm=TRUE))^2, na.rm=TRUE)
+      lm_metric <- 1 - (rss / tss)
+    } else if (type == "binary classification") {
+      glm_fit <- glm(target ~ ., data = train_df, family = binomial)
+      glm_prob <- predict(glm_fit, test_df, type = "response")
+      glm_pred <- ifelse(glm_prob > 0.5, 1, 0)
+      lm_metric <- mean(glm_pred == test_df$target)
+    } else {
+      mn_fit <- nnet::multinom(target ~ ., data = train_df, trace=FALSE)
+      mn_pred <- predict(mn_fit, test_df)
+      lm_metric <- mean(as.numeric(as.character(mn_pred)) == test_df$target)
+    }
+
+    if (type == "regression") {
+      rf_fit <- randomForest::randomForest(target ~ ., data = train_df)
+      rf_pred <- predict(rf_fit, test_df)
+      rss_rf <- sum((rf_pred - test_df$target)^2, na.rm=TRUE)
+      tss_rf <- sum((test_df$target - mean(test_df$target, na.rm=TRUE))^2, na.rm=TRUE)
+      rf_metric <- 1 - (rss_rf / tss_rf)
+    } else {
+      train_df$target <- as.factor(train_df$target)
+      rf_fit <- randomForest::randomForest(target ~ ., data = train_df)
+      rf_pred <- predict(rf_fit, test_df)
+      rf_metric <- mean(as.numeric(as.character(rf_pred)) == test_df$target)
+    }
+  }, error = function(e) {
+    message(paste("\n Baseline error:", e$message))
+  })
+  
+  cat(sprintf("\n SICNN: %.3f | GLM: %.3f | RF: %.3f (Sparsity: %.2f%%)\n", metric_val, lm_metric, rf_metric, val$sparsity_pct))
+  
+  return(list(name=dataset_name, metric=metric_val, lm_metric=lm_metric, rf_metric=rf_metric, sparsity=val$sparsity_pct, p=p, type=type))
 }
 
 args <- commandArgs(trailingOnly=TRUE)
@@ -159,7 +215,8 @@ for (d in target_datasets) {
     "Concrete" = 0.1,
     5.0
   )
-  results[[d]] <- run_experiment(d, penalty_mult = p_mult)
+  res <- tryCatch(run_experiment(d, penalty_mult = p_mult), error=function(e) { message(paste("Experiment failed for", d, ":", e$message)); NULL })
+  results[[d]] <- res
 }
 
 if (length(args) == 0) {
@@ -170,6 +227,8 @@ if (length(args) == 0) {
     res <- results[[d]]
     if (!is.null(res)) {
       cat(sprintf("%-15s | %-10s | %-7.3f | %-7.3f | %-7.3f | %-10.2f%%\n", res$name, res$type, res$metric, res$lm_metric, res$rf_metric, res$sparsity))
+    } else {
+      cat(sprintf("%-15s | %-10s | %-7s | %-7s | %-7s | %-10s\n", d, "N/A", "N/A", "N/A", "N/A", "N/A"))
     }
   }
 }

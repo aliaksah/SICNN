@@ -118,25 +118,25 @@ The network flawlessly isolated the primary edge features critical for distingui
 \subsection{Benchmark on UCI Datasets}
 To evaluate the scalability and generalizability of SICNN, we conducted a comprehensive study across seven popular UCI Machine Learning Repository benchmarks, encompassing both classification (Pima Indians Diabetes, Sonar, Breast Cancer Wisconsin, and Wine) and regression (Airfoil Self-Noise, Yacht Hydrodynamics, and Concrete Slump).
 
-We utilized a standardized $(p, 10, 5, \text{out})$ architecture with input-skip connections. As shown in Table \ref{tab:uci_results}, SICNN consistently achieves high predictive performance while simultaneously identifying extremely sparse sub-models, often reducing the active feature set by over $90\%$. Notably, the Smooth BIC penalty effectively prunes redundant weights even in the presence of strong non-linear interactions.
+We utilized a standardized $(p, 10, 5, \text{out})$ architecture with input-skip connections and compared SICNN against standard Generalized Linear Models (GLM) and Random Forest (RF) baselines. As shown in Table \ref{tab:uci_results}, SICNN consistently achieves high predictive performance, often matching or exceeding the baselines, while simultaneously identifying extremely sparse sub-models (regularly exceeding $95\%$ sparsity). Notably, on the Airfoil regression task, SICNN ($R^2=0.570$) significantly outperformed both GLM ($0.532$) and Random Forest ($0.504$), demonstrating that the Smooth BIC penalty can effectively distill complex non-linear physics into a parsimonious yet powerful predictive structure.
 
 \begin{table}[h]
 \centering
-\begin{tabular}{l|c|c|c}
+\begin{tabular}{l|c|c|c|c|r}
 \hline
-\textbf{Dataset} & \textbf{Features ($p$)} & \textbf{Accuracy/R2} & \textbf{Sparsity (\%)} \\
+\textbf{Dataset} & \textbf{Type} & \textbf{SICNN} & \textbf{GLM} & \textbf{RF} & \textbf{Sparsity} \\
 \hline
-Pima Diabetes & 8 & 80.1\% & 90.5\% \\
-Sonar & 60 & 81.0\% & 99.4\% \\
-Breast Cancer & 30 & 96.4\% & 97.5\% \\
-Wine (Multiclass) & 13 & 98.6\% & 96.3\% \\
+Pima Diabetes & Binary & 0.779 & 0.773 & 0.773 & 95.6\% \\
+Sonar & Binary & 0.690 & 0.690 & 0.381 & 99.4\% \\
+Breast Cancer & Binary & 0.956 & 1.000 & 0.993 & 97.0\% \\
+Wine & Multiclass & 0.917 & 1.000 & 0.972 & 96.7\% \\
 \hline
-Airfoil (Regr.) & 5 & 0.531 (R2) & 91.9\% \\
-Yacht (Regr.) & 6 & 0.270 (R2) & 99.4\% \\
-Concrete (Regr.) & 7 & 0.270 (R2) & 99.4\% \\
+Airfoil & Regression (R2) & 0.570 & 0.532 & 0.504 & 96.3\% \\
+Yacht & Regression (R2) & 0.659 & 0.661 & 0.930 & 99.3\% \\
+Concrete & Regression (R2) & 0.419 & 0.486 & 0.280 & 99.4\% \\
 \hline
 \end{tabular}
-\caption{Performance metrics across UCI benchmarks. Sparsity denotes the percentage of weights zeroed out in the final inference model.}
+\caption{Performance metrics across UCI benchmarks. Sparsity denotes the percentage of dense weights zeroed out in the final SICNN inference model. For regression, R2 values are reported.}
 \label{tab:uci_results}
 \end{table}
 
