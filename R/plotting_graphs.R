@@ -16,7 +16,7 @@ get_adj_mats <- function(model){
   for(l in model$layers$children){
     alp <- t(as.matrix(l$alpha_active_path))
     adj_mat <- matrix(0,nrow = sum(dim(alp)),ncol = sum(dim(alp))) #initialize empty matrix
-    first_dim <- 1:dim(alp)[1]
+    first_dim <- seq_len(dim(alp)[1])
     second_dim <- (dim(alp)[1] +1):sum(dim(alp))
     adj_mat[first_dim,second_dim] <- alp
     mats_out[[i]] <- adj_mat
@@ -24,7 +24,7 @@ get_adj_mats <- function(model){
   } #do the same for the output layer
   alp_out <- t(as.matrix(model$out_layer$alpha_active_path))
   adj_mat_out <- matrix(0,nrow = sum(dim(alp_out)),ncol = sum(dim(alp_out))) #
-  first_dim <- 1:dim(alp_out)[1]
+  first_dim <- seq_len(dim(alp_out)[1])
   second_dim <- (dim(alp_out)[1] +1):sum(dim(alp_out))
   adj_mat_out[first_dim,second_dim] <- alp_out
   mats_out[[i]] <- adj_mat_out
@@ -43,14 +43,14 @@ get_adj_mats <- function(model){
 #' @return Positions of the second layer. 
 #' @keywords internal
 assign_within_layer_pos<- function(N,N_u,input_positions,neuron_spacing){
-  if(N %% 2 == 0 & N_u %% 2 == 0){ #if both layers have even number of neurons
+  if(N %% 2 == 0 && N_u %% 2 == 0){ #if both layers have even number of neurons
     N_u_center <- stats::median(input_positions)
     N_u_start_pos <- N_u_center + neuron_spacing / 2 - (N_u /2 * neuron_spacing) #add the half space, then subtract half of the array to get to start point
     N_u_positions <- seq(from = N_u_start_pos, length.out = N_u,by = neuron_spacing)
 
   } 
   
-  if(N %% 2 != 0 & N_u %% 2 != 0){ #if both layers have odd number of neurons
+  if(N %% 2 != 0 && N_u %% 2 != 0){ #if both layers have odd number of neurons
     N_u_center <- stats::median(input_positions)
     N_u_start_pos <- N_u_center - ((N_u - 1) / 2) * neuron_spacing #just need to figure out how many neurons to the left of the median one
     N_u_positions <- seq(from = N_u_start_pos, length.out = N_u,by = neuron_spacing)
@@ -80,7 +80,7 @@ assign_within_layer_pos<- function(N,N_u,input_positions,neuron_spacing){
 assign_names<- function(model){#assign names to the nodes before plotting
   alphas <- get_adj_mats(model)
   sizes <- model$sizes
-  for(i in 1:length(alphas)){
+  for(i in seq_along(alphas)){
     mat_names <- c()
     if(i == 1){ #for the input layer
       for(j in 1:sizes[1]){ #first the x_i
@@ -173,7 +173,7 @@ SICNN_plot <- function(model,layer_spacing = 1,neuron_spacing = 1,vertex_size = 
   
   graph <- assign_names(model) #the graph with names neurons, given some model with alpha matrices
   g <- igraph::make_empty_graph(n = 0) #initialize empty graph
-  for(L in 1:length(graph)){
+  for(L in seq_along(graph)){
     g <- g +  igraph::graph_from_adjacency_matrix(graph[[L]],mode = 'directed')
   }
   plot_points <- matrix(0,nrow = length(g),ncol = 2) #x,y coordinates for all neurons in g
@@ -217,7 +217,7 @@ SICNN_plot <- function(model,layer_spacing = 1,neuron_spacing = 1,vertex_size = 
     
   }
   #assign colors based on what type of neuron it is
-  for(z in 1:length(igraph::V(g))){ 
+  for(z in seq_along(igraph::V(g))){ 
     string <- igraph::V(g)[z]
     if(grepl('x',string$name)){ #for input neurons
       igraph::V(g)[z]$color <- '#D5E8D4'

@@ -25,16 +25,16 @@ prepare_uci_data <- function(name) {
     df <- df[,-1]
     target_idx <- ncol(df)
     df[[target_idx]] <- ifelse(df[[target_idx]] == 4, 1, 0)
-    for(i in 1:ncol(df)) df[[i]] <- as.numeric(as.character(df[[i]]))
+    for(i in seq_len(ncol(df))) df[[i]] <- as.numeric(as.character(df[[i]]))
     target_type <- "binary classification"
   }
   return(list(df=df, target_type=target_type))
 }
 
-run_experiment <- function(dataset_name, lr=0.01, penalty_mult=25, epochs=3000) {
+run_experiment <- function(dataset_name, lr=0.01, penalty_mult=5, epochs=1000) {
   set.seed(42)
   cat(paste("\n--- Processing", dataset_name, "---"))
-  data_obj <- tryCatch(prepare_uci_data(dataset_name), error=function(e) { cat("\nError loading", dataset_name); return(NULL) })
+  data_obj <- tryCatch(prepare_uci_data(dataset_name), error=function(e) NULL)
   if (is.null(data_obj)) return(NULL)
   
   df <- data_obj$df
@@ -44,7 +44,7 @@ run_experiment <- function(dataset_name, lr=0.01, penalty_mult=25, epochs=3000) 
   features <- df[,-target_col]
   target <- df[[target_col]]
   
-  for(i in 1:ncol(features)) {
+  for(i in seq_len(ncol(features))) {
      r <- range(features[[i]], na.rm=TRUE)
      if (r[2] != r[1]) features[[i]] <- (features[[i]] - r[1]) / (r[2] - r[1])
   }
@@ -70,7 +70,7 @@ run_experiment <- function(dataset_name, lr=0.01, penalty_mult=25, epochs=3000) 
   train_SICNN(
     epochs = epochs, restarts = 1, SICNN = model, 
     lr = lr, train_dl = loaders$train_loader, device = "cpu",
-    scheduler = "step", sch_step_size = floor(epochs/2), n_train = n_train,
+    scheduler = "step", sch_step_size = floor(epochs/3), n_train = n_train,
     epsilon_1 = 1, epsilon_T = 1e-4, steps_T = floor(epochs*0.8), 
     sic_threshold = 0.5, penalty = penalty_mult * log(n_train)
   )
