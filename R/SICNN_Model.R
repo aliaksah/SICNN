@@ -425,7 +425,110 @@ SICNN_Net <- torch::nn_module(
     thr_t <- if(!is.null(self$sic_report_threshold_type)) self$sic_report_threshold_type else "phi"
     return(self$sic_density_active_path(self$sic_epsilon_T, self$sic_threshold, thr_t))
   }
+)
+
+
+#' @title SICNN Convolutional Neural Network
+#' @description A Convolutional Network structured compatible with the SICNN framework.
+#' @param conv1 First convolutional layer (e.g. \code{SICNN_Conv2d}).
+#' @param conv2 Second convolutional layer.
+#' @param fc1 First fully connected layer (e.g. \code{SICNN_Linear}).
+#' @param fc2 Second fully connected layer (output layer).
+#' @param device character, either 'cpu', 'gpu' or 'mps'.
+#' @return A \code{torch::nn_module} for Convolutional networks compatible with \code{train_SICNN}.
+#' @export
+SICNN_ConvNet <- torch::nn_module(
+  "SICNN_ConvNet",
   
+  initialize = function(conv1, conv2, fc1, fc2, device = "cpu") {
+    self$problem_type <- 'multiclass classification'
+    self$input_skip <- FALSE
+    self$computed_paths <- FALSE
+    self$raw_output <- FALSE
+    self$device <- device
+    self$conv1 <- conv1
+    self$conv2 <- conv2
+    self$fc1 <- fc1
+    self$fc2 <- fc2
+    
+    self$pool <- torch::nn_max_pool2d(2)
+    self$act <- torch::nn_leaky_relu()
+    self$out <- torch::nn_log_softmax(dim = 2)
+    self$loss_fn <- torch::nn_nll_loss(reduction='sum')
+  },
+  
+  forward = function(x, sparse=FALSE) {
+    x <- self$act(self$conv1(x, sparse))
+    x <- self$pool(x)
+    x <- self$act(self$conv2(x, sparse))
+    x <- self$pool(x)
+    x <- torch::torch_flatten(x, start_dim = 2)
+    x <- self$act(self$fc1(x, sparse))
+    
+    if(isTRUE(self$raw_output)) {
+      x <- self$fc2(x, sparse)
+    } else {
+      x <- self$out(self$fc2(x, sparse))
+    }
+    return(x)
+  },
+  
+  smooth_param_count = function(epsilon){
+    if(missing(epsilon) || !is.numeric(epsilon) || length(epsilon) != 1 || epsilon <= 0){
+      stop("epsilon must be a positive numeric scalar")
+    }
+    smooth_l0 <- function(tensor, eps){
+      num <- tensor ^ 2
+      den <- tensor ^ 2 + eps ^ 2
+      torch::torch_sum(num / den)
+    }
+    k_smooth <- torch::torch_tensor(0, dtype = torch::torch_float32(), device = self$device)
+    k_smooth <- k_smooth + smooth_l0(self$conv1$weight_mean, epsilon)
+    k_smooth <- k_smooth + smooth_l0(self$conv2$weight_mean, epsilon)
+    k_smooth <- k_smooth + smooth_l0(self$fc1$weight_mean, epsilon)
+    k_smooth <- k_smooth + smooth_l0(self$fc2$weight_mean, epsilon)
+    return(k_smooth)
+  },
+  
+  sic_weight_counts = function(epsilon, threshold = 0.5, threshold_type = "phi"){
+    if(missing(epsilon) || !is.numeric(epsilon) || length(epsilon) != 1 || epsilon <= 0){
+      stop("epsilon must be a positive numeric scalar")
+    }
+    if(!is.numeric(threshold) || length(threshold) != 1 || threshold <= 0){
+      stop("threshold must be a positive numeric scalar")
+    }
+    phi_active <- function(w_eff){
+      if(threshold_type == "abs"){
+        (torch::torch_abs(w_eff) > threshold) * 1
+      } else {
+        w2 <- w_eff ^ 2
+        (w2 / (w2 + epsilon ^ 2) > threshold) * 1
+      }
+    }
+    layers <- list(self$conv1, self$conv2, self$fc1, self$fc2)
+    num_incl <- torch::torch_tensor(0, dtype = torch::torch_float32(), device = self$device)
+    tot <- torch::torch_tensor(0, dtype = torch::torch_float32(), device = self$device)
+    for(l in layers){
+      m <- phi_active(l$weight_mean)
+      num_incl <- num_incl + torch::torch_sum(m$to(torch::torch_float32()))
+      tot <- tot + m$numel()
+    }
+    return(c(
+      active = as.numeric(num_incl$item()),
+      removed = as.numeric((tot - num_incl)$item()),
+      total = as.numeric(tot$item())
+    ))
+  },
+  
+  compute_paths = function(epsilon = NULL, threshold = NULL, threshold_type = NULL){
+    invisible(NULL)
+  },
+  compute_paths_input_skip = function(...) {
+    invisible(NULL)
+  },
+  density_active_path = function(){
+    NA
+  }
 )
 
 

@@ -34,20 +34,16 @@ test_that("Smoke: tiny model trains one epoch", {
   
   problem <- 'binary classification'
   sizes <- c(j,5,5,1) # 2 hidden layers, 5 neurons in each 
-  incl_priors <-c(0.5,0.5,0.5) #prior inclusion probs for each weight matrix
-  stds <- c(100,100,100) #prior distribution for the standard deviation of the weights
-  incl_inits <- matrix(rep(c(-15,10),3),nrow = 2,ncol = 3) #initializations for inclusion params
   device <- 'cpu' #can also be 'gpu' or 'mps'
   
   
-  model_input_skip <- SICNN_Net(problem_type = problem,sizes = sizes,prior = incl_priors,
-                                inclusion_inits = incl_inits,input_skip = TRUE,std = stds,
-                                flow = TRUE,device = device)
+  model_input_skip <- SICNN_Net(problem_type = problem,sizes = sizes,
+                                input_skip = TRUE,device = device)
   
   
   
   res <- train_SICNN(epochs = 1,SICNN = model_input_skip,
-              lr = 0.005,train_dl = train_loader,device = device)
+              lr = 0.005,train_dl = train_loader,n_train = 5000)
   
   validate_SICNN(SICNN = model_input_skip,num_samples = 1,test_dl = test_loader,device)
   

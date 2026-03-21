@@ -1,0 +1,96 @@
+---
+title: "Tutorial 4: Convolutional Architecture on KMNIST"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Tutorial 4: Convolutional Architecture on KMNIST}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+## Introduction
+This tutorial demonstrates how to leverage the `SICNN` framework for a Convolutional Neural Network on the Kuzushiji-MNIST (KMNIST) dataset. Since SICNN modules (`SICNN_Conv2d` and `SICNN_Linear`) track `weight_mean` and `alpha_active_path` identically, they can be composed into arbitrary deep learning architectures like the `SICNN_ConvNet`.
+
+## Loading Dependencies and the Dataset
+
+```{r setup, eval=FALSE}
+# install.packages("torchvision") 
+library(torch)
+library(torchvision)
+library(SICNN)
+
+dir <- "./dataset/kmnist"   #directory to install dataset
+train_ds <- torchvision::kmnist_dataset(
+  dir,
+  download = TRUE,
+  transform = torchvision::transform_to_tensor)
+
+test_ds <- torchvision::kmnist_dataset(
+  dir,
+  train = FALSE,
+  transform = torchvision::transform_to_tensor)
+
+train_loader <- torch::dataloader(train_ds, batch_size = 100, shuffle = TRUE)
+test_loader <- torch::dataloader(test_ds, batch_size = 100)
+```
+
+## Initializing the Convolutional Architecture
+
+We use the native `SICNN_Conv2d` layers to construct the feature extractor, and standard `SICNN_Linear` layers for the classifier. The built-in `SICNN_ConvNet` module wraps these layers specifically for MNIST-shaped classification tasks.
+
+```{r conv-init, eval=FALSE}
+device <- 'cpu' # Can be swapped with 'gpu' or 'mps' on supported hardware
+torch::torch_manual_seed(42)
+
+conv_layer_1 <- SICNN_Conv2d(in_channels = 1, out_channels = 32, kernel_size = 5, device = device)
+conv_layer_2 <- SICNN_Conv2d(in_channels = 32, out_channels = 64, kernel_size = 5, device = device)
+
+# After two max pools of 2x2, the 28x28 image becomes 4x4.
+# (28 - 4)/1 = 24. 24/2 = 12.
+# (12 - 4)/1 = 8. 8/2 = 4. 4*4*64 = 1024
+linear_layer_1 <- SICNN_Linear(in_features = 1024, out_features = 300, device = device, bias = FALSE)
+linear_layer_2 <- SICNN_Linear(in_features = 300, out_features = 10, device = device, bias = FALSE)
+
+
+model <- SICNN_ConvNet(conv1 = conv_layer_1, 
+                       conv2 = conv_layer_2, 
+                       fc1 = linear_layer_1, 
+                       fc2 = linear_layer_2, 
+                       device = device)
+                       
+model$to(device = device)
+```
+
+## Training the Model
+
+The framework exposes the `train_SICNN` functionality seamlessly to the novel architecture since `SICNN_ConvNet` inherits and defines standard SIC metrics (like `smooth_param_count`).
+
+```{r train, eval=FALSE}
+# We use epochs = 3 for this demonstration
+train_SICNN(epochs = 3, 
+            SICNN = model, 
+            lr = 0.001, 
+            train_dl = train_loader, 
+            n_train = length(train_ds),
+            device = device)
+```
+
+## Validation and Predictions
+
+Once the model has converged, we calculate standard test-set predictions via multi-draw validation to understand its epistemic uncertainty and overall sparsity.
+
+```{r validate, eval=FALSE}
+validate_SICNN(model, num_samples = 10, test_dl = test_loader, device = device)
+
+# Predict draws on the test set explicitly
+predictions <- predict(model, newdata = test_loader, draws = 10)
+cat(sprintf("Prediction tensor dimensions: %s\n", paste(dim(predictions), collapse="x")))
+print(predictions[, 1, ])
+```
