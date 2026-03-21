@@ -246,3 +246,15 @@ SICNN_plot <- function(model,layer_spacing = 1,neuron_spacing = 1,vertex_size = 
   
 }
 
+
+#' @title Plot SICNN Convolutional Network
+#' @description Convolutional Networks cannot be plotted natively using the graph structures designed for Fully Connected Layers.
+#' @param x An object of class \code{SICNN_ConvNet}
+#' @param ... Additional arguments.
+#' @return Invisible NULL.
+#' @export
+plot.SICNN_ConvNet <- function(x, ...) {
+  message("Plotting graph structures is not supported for Convolutional Neural Networks.")
+  invisible(x)
+}
+

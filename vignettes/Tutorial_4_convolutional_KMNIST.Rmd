@@ -16,6 +16,7 @@ knitr::opts_chunk$set(
 ```
 
 ## Introduction
+
 This tutorial demonstrates how to leverage the `SICNN` framework for a Convolutional Neural Network on the Kuzushiji-MNIST (KMNIST) dataset. Since SICNN modules (`SICNN_Conv2d` and `SICNN_Linear`) track `weight_mean` and `alpha_active_path` identically, they can be composed into arbitrary deep learning architectures like the `SICNN_ConvNet`.
 
 ## Loading Dependencies and the Dataset
