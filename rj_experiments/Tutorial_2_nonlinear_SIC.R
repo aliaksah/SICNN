@@ -41,28 +41,25 @@ device <- "cpu" # can also be 'gpu' or 'mps'
 model_input_skip <- SICNN_Net(
   problem_type     = problem,
   sizes            = sizes,
-  prior            = incl_priors,
-  inclusion_inits  = incl_inits,
   input_skip       = TRUE,
-  std              = stds,
-  flow             = TRUE,
-  device           = device,
-  bias_inclusion_prob = FALSE
+  device           = device
 )
 
 # train using smooth BIC / SIC criterion with epsilon-telescope
 results_sic <- train_SICNN(
-  epochs    = 500,
-  restarts = 5,
+  epochs    = 1500,
+  restarts  = 1,
   SICNN     = model_input_skip,
-  lr        = 0.005,
+  lr        = 0.002,
   train_dl  = train_loader,
   device    = device,
-  criterion = "SIC",
+  scheduler = "step",
+  sch_step_size = 500,
   n_train   = i,
-  epsilon_1 = 10,
+  epsilon_1 = 1,
   epsilon_T = 1e-5,
-  steps_T   = 100
+  steps_T   = 200,
+  sic_threshold = 0.5
 )
 
 validate_SICNN(

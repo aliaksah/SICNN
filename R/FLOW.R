@@ -62,9 +62,9 @@ FLOW <- torch::nn_module(
     return(l)
   }
   ,
-  set_deterministic = function(deterministic = TRUE){
+  set_sparse = function(sparse = TRUE){
     for(l in self$layers$children){
-      l$deterministic <- deterministic
+      l$sparse <- sparse
     }
     invisible(NULL)
   }

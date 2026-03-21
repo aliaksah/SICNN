@@ -1,4 +1,4 @@
-#library(SICNN)
+library(SICNN)
 #### Tutorial 3 (SIC): classification on gallstone dataset using smooth BIC criterion
 
 seed <- 42
@@ -29,11 +29,7 @@ device <- "cpu"
 model_input_skip <- SICNN_Net(
   problem_type    = problem,
   sizes           = sizes,
-  prior           = inclusion_priors,
-  inclusion_inits = inclusion_inits,
   input_skip      = TRUE,
-  std             = stds,
-  flow            = TRUE,
   device          = device
 )
 
@@ -41,18 +37,19 @@ model_input_skip <- SICNN_Net(
 n_train <- nrow(Gallstone_Dataset)
 
 results_input_skip <- train_SICNN(
-  epochs    = 2500,
+  epochs    = 1500,
+  restarts  = 1,
   SICNN     = model_input_skip,
-  lr        = 0.01,
+  lr        = 0.002,
   train_dl  = train_loader,
   device    = device,
   scheduler = "step",
-  sch_step_size = 1000,
-  criterion = "SIC",
+  sch_step_size = 500,
   n_train   = n_train,
   epsilon_1 = 1,
   epsilon_T = 1e-5,
-  steps_T   = 200
+  steps_T   = 200,
+  sic_threshold = 0.5
 )
 
 validate_SICNN(

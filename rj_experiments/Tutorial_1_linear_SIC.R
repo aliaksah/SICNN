@@ -1,4 +1,4 @@
-#library(SICNN)
+library(SICNN)
 #### Tutorial 1 (SIC): simulated data with linear effects using smooth BIC criterion
 
 i <- 1000
@@ -34,34 +34,25 @@ device <- "cpu" # can also be 'gpu' or 'mps'
 model_input_skip <- SICNN_Net(
   problem_type = problem,
   sizes = sizes,
-  prior = incl_priors,
-  inclusion_inits = incl_inits,
-  std = stds,
   input_skip = TRUE,
-  flow = FALSE,
-  num_transforms = 2,
-  dims = c(2, 2),
-  raw_output = FALSE,
-  custom_act = NULL,
-  link = NULL,
-  nll = NULL,
-  bias_inclusion_prob = FALSE,
   device = device
 )
 
 # train using smooth BIC / SIC criterion with epsilon-telescope
 results_sic <- train_SICNN(
-  epochs    = 400,
-  restarts  = 5,
+  epochs    = 2000,
+  restarts  = 1,
   SICNN     = model_input_skip,
-  lr        = 0.01,
+  lr        = 0.002,
   train_dl  = train_loader,
   device    = device,
-  criterion = "SIC",
+  scheduler = "step",
+  sch_step_size = 500,
   n_train   = i,
-  epsilon_1 = 10,
+  epsilon_1 = 1,
   epsilon_T = 1e-5,
-  steps_T   = 100
+  steps_T   = 200,
+  sic_threshold = 0.5
 )
 
 validate_SICNN(
@@ -80,9 +71,11 @@ coef(
   num_samples  = 10
 )
 
+plot(model_input_skip)
+
 x <- train_loader$dataset$tensors[[1]] # grab the dataset
 y <- train_loader$dataset$tensors[[2]] 
-ind <- 42
+ind <- 58
 data <- x[ind, ] # plot this specific data-point
 output <- y[ind]
 print(output$item())

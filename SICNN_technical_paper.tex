@@ -1,0 +1,67 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+
+\title{SICNN: Smooth Information Criterion Neural Networks for Scalable and Exact Feature Selection}
+\author{Aliaksandr Hubin et al.}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We introduce Smooth Information Criterion Neural Networks (SICNN), a scalable and standalone architecture designed exclusively for seamless, continuous parameter space pruning. Evolved from Latent Binary Bayesian Neural Networks (LBBNN), SICNN operates dynamically and directly on model weight structures $W$. By natively leveraging a continuous smooth approximation of the $L_0$ norm (SIC constraint) without relying on variational inclusion abstractions ($\alpha$), SICNN captures and exploits the fundamental topological capacities of deep architectures, efficiently solving the discrete selection problem natively in parameter space.
+\end{abstract}
+
+\section{Introduction}
+Modern high-dimensional datasets require parameter pruning methods to distill dense black-box neural networks into compact, explainable structures. While Variational inference frameworks like existing LBBNN configurations utilize random stochastic estimators and the local reparameterization trick to deduce latent inclusion probabilities ($\alpha$), they mandate dual-parameter optimizations and scale exponentially with large parameter landscapes, severely complicating learning stability. To resolve computational complexity dependencies directly, SICNN has been explicitly untethered from Bayesian inclusion indicators. SICNN natively optimizes model weights by functionally penalizing nonzero states using a Continuous Bayesian Information Criterion.
+
+\section{Methodology}
+\subsection{The Smooth Information Criterion}
+Following O'Neill and Burke (2023), the SIC is defined as a penalized log-likelihood:
+\begin{equation}
+\text{SIC}(\theta, \epsilon) = \ell(\theta) - \frac{\lambda}{2} \|\theta\|_{0,\epsilon}
+\end{equation}
+where $\ell(\theta)$ is the log-likelihood, $\lambda = \log(n)$ for BIC-type selection, and $\|\theta\|_{0,\epsilon} = \sum_{k=1}^K \phi_\epsilon(\theta_k)$ is the smooth $L_0$ surrogate count of effective parameters. The smooth approximation function is:
+\begin{equation}
+\phi_\epsilon(w_k) = \frac{w_k^2}{w_k^2 + \epsilon^2}
+\end{equation}
+which satisfies $\phi_\epsilon(w) \to \mathbb{1}(w \neq 0)$ as $\epsilon \to 0$.
+
+In practice, SICNN minimizes the negative SIC on the $-2\ell$ scale. The per-batch training objective scales the data loss to the full-sample level:
+\begin{equation}
+\mathcal{L}_{batch} = \frac{n}{m} \cdot s \cdot \mathcal{L}_{data}^{(batch)} + \lambda \sum_{k=1}^K \phi_\epsilon(w_k)
+\end{equation}
+where $m$ is the mini-batch size, $n$ is the full sample size, $\lambda = \log(n)$ by default, and $s$ is a likelihood scaling factor: $s=1$ for Gaussian regression (since MSE with {\tt reduction='sum'} already gives $-2\ell$), and $s=2$ for classification losses (BCE/NLL, which give $-\ell$). This ensures each per-batch gradient is an unbiased estimate of the full-sample SIC gradient.
+
+Applying gradient-based optimizers (e.g., Adam), the gradient of $\phi_\epsilon$ with respect to $w$ is:
+\begin{equation}
+\frac{\partial \phi_\epsilon}{\partial w} = \frac{2w\epsilon^2}{(w^2 + \epsilon^2)^2}
+\end{equation}
+This gradient naturally forces small weights toward zero as $\epsilon$ decreases, while leaving large weights unaffected. The $\epsilon$-telescope of O'Neill and Burke (2023) schedules $\epsilon$ along an exponential decay:
+\begin{equation}
+\epsilon_t = \epsilon_1 \left(\frac{\epsilon_T}{\epsilon_1}\right)^{t/(T-1)}, \quad t = 0, \ldots, T-1
+\end{equation}
+from an initial $\epsilon_1$ (e.g., 10) to a final $\epsilon_T$ (e.g., $10^{-5}$), progressively sharpening the $L_0$ approximation.
+
+\subsection{Multi-Restart Optimization}
+Unlike stochastic variational gating, the SIC landscape contains multiple local minima corresponding to different sparse subnetwork configurations. To explore this landscape, SICNN employs systematic random restarts $r = 1, \ldots, R$, each initialized at a different sparsity level $p_r \in \{0.01, \ldots, 0.99\}$:
+\begin{equation}
+W^{(r)}_{init} = W_{dense} \cdot \mathbf{1}_{(U(0, 1) < p_r)}
+\end{equation}
+The best model across all restarts is selected by the final SIC value, ensuring convergence to a globally favorable sparse solution.
+
+\subsection{Tuning Parameters}
+Two key user-tunable parameters control the sparsity behavior:
+
+\textbf{Penalty coefficient ($\lambda$).} The default is $\lambda = \log(n)$ (BIC-like), but users can supply a custom value via the \texttt{penalty} argument. For classification problems where the data loss often dominates, setting $\lambda = 2\log(n)$ or higher may be needed to achieve meaningful sparsity. Conversely, $\lambda < \log(n)$ retains more weights.
+
+\textbf{SIC threshold ($\tau$).} A weight $w_k$ is deemed ``active'' if $\phi_\epsilon(w_k) > \tau$. This threshold controls \emph{sparse inference}: when predicting with the pruned model (\texttt{sparse=TRUE}), weights with $\phi_\epsilon(w_k) \le \tau$ are zeroed out. Setting $\tau$ close to 0 (e.g., $10^{-4}$) retains weights that are small but useful, improving sparse-model accuracy. Setting $\tau = 0.5$ produces a sharper binary partition.
+
+\section{Experimental Results}
+The SICNN architecture is validated on three benchmarks: (i) a synthetic linear regression with 3 true and 12 noise covariates ($n=100$, $p=15$), (ii) a synthetic nonlinear classification ($n=1000$, $p=15$), and (iii) the Gallstone binary classification dataset ($n=223$, $p=40$). In the linear experiment with default $\lambda = \log(n)$, SICNN achieves $\sim$67\% sparsity while maintaining low predictive error, correctly recovering the true 3-variable data-generating structure. For classification tasks, a stronger penalty ($\lambda = 2\log(n)$) encourages the SIC regularizer to overcome the larger data-loss scale, progressively pruning weights that do not contribute to the decision boundary.
+
+
+\end{document}

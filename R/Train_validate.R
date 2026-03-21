@@ -74,41 +74,44 @@ train_SICNN <- function(epochs,
                         device = "cpu",
                         scheduler = NULL,
                         sch_step_size = NULL,
-                        criterion = c("VI", "SIC"),
                         n_train = NULL,
                         epsilon_1 = 10,
                         epsilon_T = 1e-5,
                         steps_T = 100,
                         sic_threshold = 0.5,
                         sic_report_epsilon = c("final", "current"),
-                        restarts = 1){
-  criterion <- match.arg(criterion)
+                        restarts = 1,
+                        penalty = NULL){
   sic_report_epsilon <- match.arg(sic_report_epsilon)
-  if (criterion == "SIC") {
-    if (is.null(n_train) || !is.numeric(n_train) || length(n_train) != 1 || n_train <= 0) {
-      stop("When criterion = 'SIC', n_train must be a positive numeric scalar giving the number of training observations")
-    }
-    if (!is.numeric(epsilon_1) || !is.numeric(epsilon_T) || epsilon_1 <= 0 || epsilon_T <= 0) {
-      stop("epsilon_1 and epsilon_T must be positive numerics when criterion = 'SIC'")
-    }
-    if (!is.numeric(steps_T) || length(steps_T) != 1 || steps_T < 1) {
-      stop("steps_T must be a positive integer when criterion = 'SIC'")
-    }
+  
+  if (is.null(n_train) || !is.numeric(n_train) || length(n_train) != 1 || n_train <= 0) {
+    stop("n_train must be a positive numeric scalar giving the number of training observations")
+  }
+  if (!is.numeric(epsilon_1) || !is.numeric(epsilon_T) || epsilon_1 <= 0 || epsilon_T <= 0) {
+    stop("epsilon_1 and epsilon_T must be positive numerics")
+  }
+  if (!is.numeric(steps_T) || length(steps_T) != 1 || steps_T < 1) {
+    stop("steps_T must be a positive integer")
+  }
     # exponential epsilon-telescope as in O'Neill and Burke (2023)
     eps_seq <- epsilon_1 * (epsilon_T/epsilon_1) ^ ((0:(steps_T - 1)) / max(1, steps_T - 1))
-    log_n_half <- 0.5 * log(n_train)
-    SICNN$criterion_trained <- "SIC"
-    SICNN$sic_epsilon_T <- epsilon_T
-    SICNN$sic_epsilon_1 <- epsilon_1
-    SICNN$sic_steps_T <- steps_T
-    SICNN$sic_threshold <- sic_threshold
-    SICNN$sic_report_epsilon <- sic_report_epsilon
-  }
-  if (criterion == "VI") {
-    SICNN$criterion_trained <- "VI"
-  }
+    # penalty coefficient: default is log(n) (BIC-like), user can override for stronger/weaker sparsity
+    if (is.null(penalty)) {
+      sic_penalty <- log(n_train)
+    } else {
+      if (!is.numeric(penalty) || length(penalty) != 1 || penalty <= 0) {
+        stop("penalty must be a positive numeric scalar")
+      }
+      sic_penalty <- penalty
+    }
+  SICNN$criterion_trained <- "SIC"
+  SICNN$sic_epsilon_T <- epsilon_T
+  SICNN$sic_epsilon_1 <- epsilon_1
+  SICNN$sic_steps_T <- steps_T
+  SICNN$sic_threshold <- sic_threshold
+  SICNN$sic_report_epsilon <- sic_report_epsilon
+  SICNN$sic_penalty <- sic_penalty
   opt <- torch::optim_adam(SICNN$parameters,lr = lr)
-  deterministic_sic <- (!is.null(SICNN$criterion_trained) && SICNN$criterion_trained == "SIC")
   if(! is.null(scheduler)){
     if(scheduler == 'step'){
       sl <- torch::lr_step(opt,step_size = sch_step_size,gamma = 0.1)
@@ -127,15 +130,10 @@ train_SICNN <- function(epochs,
       cat(sprintf("\n--- Restart %d/%d ---\n", r, restarts))
       p_seq <- seq(0.01, 0.99, length.out = restarts)
       p <- p_seq[r]
-      lambda_mean <- log(p / (1 - p))
-      
       apply_sic_mask <- function(layer, prob) {
-        layer$density_init <- c(lambda_mean - 0.5, lambda_mean + 0.5)
         layer$reset_parameters()
-        if (criterion == "SIC") {
-          mask <- (torch::torch_rand_like(layer$weight_mean) < prob)$to(torch::torch_float32())
-          layer$weight_mean$data()$mul_(mask)
-        }
+        mask <- (torch::torch_rand_like(layer$weight_mean) < prob)$to(torch::torch_float32())
+        layer$weight_mean$data()$mul_(mask)
       }
       
       for (l in SICNN$layers$children) {
@@ -170,18 +168,16 @@ train_SICNN <- function(epochs,
     corrects <- 0
     totals <- 0
     train_loss <- c()
-    # map epoch to epsilon index if using SIC
-    if (criterion == "SIC") {
-      idx <- min(steps_T, max(1, ceiling(epoch * steps_T/epochs)))
-      epsilon <- eps_seq[idx]
-      epsilon_report <- if (sic_report_epsilon == "final") epsilon_T else epsilon
-    }
+    # map epoch to epsilon index
+    idx <- min(steps_T, max(1, ceiling(epoch * steps_T/epochs)))
+    epsilon <- eps_seq[idx]
+    epsilon_report <- if (sic_report_epsilon == "final") epsilon_T else epsilon
     # use coro::loop() for stability and performance
     coro::loop(for (b in train_dl) {
 
       opt$zero_grad()
       data <- b[[1]]$to(device = device)
-      output <- SICNN(data,MPM=FALSE, deterministic = deterministic_sic)
+      output <- SICNN(data, sparse=FALSE)
       target <- b[[2]]$to(device=device)
       if(epoch == epochs){ #add the targets and outputs to y and r
         SICNN$y <- c(SICNN$y, as.numeric(target$clone()$detach()$cpu()))
@@ -194,18 +190,22 @@ train_SICNN <- function(epochs,
       }
       else(output <- output$squeeze()) #remove last dimension from binary classifiction or regression
       data_loss <- SICNN$loss_fn(output, target)
-      if (criterion == "VI") {
-        loss <- data_loss + SICNN$kl_div() / length(train_dl)
-        loss_report <- loss$item()
-      } else {
-        k_smooth <- SICNN$smooth_param_count(epsilon)
-        loss <- data_loss + (log_n_half * k_smooth) / length(train_dl)
-        
-        # Calculate loss referencing the strict final epsilon_T so the reported loss visually improves
-        # without being confounded by the changing epsilon mapping.
-        k_smooth_T <- SICNN$smooth_param_count(SICNN$sic_epsilon_T)
-        loss_report <- data_loss$item() + (log_n_half * k_smooth_T$item()) / length(train_dl)
-      }
+      
+      # ---- SIC-consistent loss scaling ----
+      # SIC = -2*loglik + penalty*k  (on the -2ℓ scale).
+      # MSE with reduction='sum' gives Σ(y-ŷ)² ∝ -2ℓ  (nll_scale = 1)
+      # BCE/NLL with reduction='sum' gives -ℓ            (nll_scale = 2)
+      # Mini-batch covers batch_n < n samples, so scale to full-sample level.
+      batch_n <- dim(data)[1]
+      nll_scale <- if (SICNN$problem_type == 'regression') 1 else 2
+      data_loss_scaled <- (n_train / batch_n) * nll_scale * data_loss
+      
+      k_smooth <- SICNN$smooth_param_count(epsilon)
+      loss <- data_loss_scaled + sic_penalty * k_smooth
+      
+      # Reporting loss: same scaling but evaluated at final epsilon_T
+      k_smooth_T <- SICNN$smooth_param_count(SICNN$sic_epsilon_T)
+      loss_report <- (n_train / batch_n) * nll_scale * data_loss$item() + sic_penalty * k_smooth_T$item()
     
       
       if(SICNN$problem_type == 'multiclass classification' | SICNN$problem_type == 'MNIST'){
@@ -245,20 +245,12 @@ train_SICNN <- function(epochs,
   
     train_acc <- corrects / totals
     if(SICNN$problem_type != 'regression'){
-      sic_counts <- NULL
-      density_val <- NULL
-      sparsity_val <- NULL
-      if (criterion == "SIC") {
-        sic_counts <- SICNN$sic_weight_counts(epsilon = epsilon_report, threshold = sic_threshold)
-        density_val <- as.numeric(sic_counts["active"] / sic_counts["total"])
-        sparsity_val <- as.numeric(sic_counts["removed"] / sic_counts["total"]) * 100
-      } else {
-        density_val <- as.numeric(SICNN$density())
-      }
+      sic_counts <- SICNN$sic_weight_counts(epsilon = epsilon_report, threshold = sic_threshold)
+      density_val <- as.numeric(sic_counts["active"] / sic_counts["total"])
+      sparsity_val <- as.numeric(sic_counts["removed"] / sic_counts["total"]) * 100
       message(sprintf(
-        "\nEpoch %d, training: loss = %3.5f, acc = %3.5f, density = %3.5f%s",
-        epoch, mean(train_loss), train_acc, density_val,
-        if (criterion == "SIC") paste0(sprintf(", sparsity = %3.2f%%", sparsity_val)) else ""
+        "\nEpoch %d, training: loss = %3.5f, acc = %3.5f, density = %3.5f, sparsity = %3.2f%%",
+        epoch, mean(train_loss), train_acc, density_val, sparsity_val
       ))
       
       
@@ -266,44 +258,27 @@ train_SICNN <- function(epochs,
       losses <- c(losses,mean(train_loss))
     }
     if(SICNN$problem_type == 'regression'){
-      sic_counts <- NULL
-      density_val <- NULL
-      sparsity_val <- NULL
-      if (criterion == "SIC") {
-        sic_counts <- SICNN$sic_weight_counts(epsilon = epsilon_report, threshold = sic_threshold)
-        density_val <- as.numeric(sic_counts["active"] / sic_counts["total"])
-        sparsity_val <- as.numeric(sic_counts["removed"] / sic_counts["total"]) * 100
-      } else {
-        density_val <- as.numeric(SICNN$density())
-      }
+      sic_counts <- SICNN$sic_weight_counts(epsilon = epsilon_report, threshold = sic_threshold)
+      density_val <- as.numeric(sic_counts["active"] / sic_counts["total"])
+      sparsity_val <- as.numeric(sic_counts["removed"] / sic_counts["total"]) * 100
       message(sprintf(
-        "\nEpoch %d, training: loss = %3.5f, density = %3.5f%s \n",
-        epoch, mean(train_loss), density_val,
-        if (criterion == "SIC") paste0(sprintf(", sparsity = %3.2f%%", sparsity_val)) else ""
+        "\nEpoch %d, training: loss = %3.5f, density = %3.5f, sparsity = %3.2f%% \n",
+        epoch, mean(train_loss), density_val, sparsity_val
       ))
       
       losses <- c(losses,mean(train_loss))
     }
-    if (criterion == "SIC") {
-      sic_counts <- SICNN$sic_weight_counts(epsilon = epsilon_report, threshold = sic_threshold)
-      active_weights <- c(active_weights, as.numeric(sic_counts["active"]))
-      total_weights <- c(total_weights, as.numeric(sic_counts["total"]))
-      removed_weights <- c(removed_weights, as.numeric(sic_counts["removed"]))
-      sparsity_pct <- c(sparsity_pct, as.numeric(sic_counts["removed"] / sic_counts["total"]) * 100)
-      density <- c(density, as.numeric(sic_counts["active"] / sic_counts["total"]))
-    } else {
-      density <- c(density, SICNN$density())
-      # keep sparsity outputs empty for VI
-    }
+    sic_counts <- SICNN$sic_weight_counts(epsilon = epsilon_report, threshold = sic_threshold)
+    active_weights <- c(active_weights, as.numeric(sic_counts["active"]))
+    total_weights <- c(total_weights, as.numeric(sic_counts["total"]))
+    removed_weights <- c(removed_weights, as.numeric(sic_counts["removed"]))
+    sparsity_pct <- c(sparsity_pct, as.numeric(sic_counts["removed"] / sic_counts["total"]) * 100)
+    density <- c(density, as.numeric(sic_counts["active"] / sic_counts["total"]))
 
 
     }
     
-    if (criterion == "SIC") {
-      l = list('accs' = accs, 'loss' = losses, 'density' = density, 'sparsity_pct' = sparsity_pct, 'active_weights' = active_weights, 'removed_weights' = removed_weights, 'total_weights' = total_weights)
-    } else {
-      l = list('accs' = accs,'loss' = losses,'density' = density)
-    }
+    l = list('accs' = accs, 'loss' = losses, 'density' = density, 'sparsity_pct' = sparsity_pct, 'active_weights' = active_weights, 'removed_weights' = removed_weights, 'total_weights' = total_weights)
     
     final_run_loss <- mean(train_loss)
     if (final_run_loss < best_loss) {
@@ -346,15 +321,14 @@ train_SICNN <- function(epochs,
 #' @export
 validate_SICNN <- function(SICNN,num_samples,test_dl,device = 'cpu'){
   SICNN$eval()
-  deterministic_sic <- (!is.null(SICNN$criterion_trained) && SICNN$criterion_trained == "SIC")
+  sparse_sic <- (!is.null(SICNN$criterion_trained) && SICNN$criterion_trained == "SIC")
   # Deterministic SIC: multiple samples are redundant.
-  if(deterministic_sic){ num_samples <- 1 }
+  if(sparse_sic){ num_samples <- 1 }
   corrects <- 0
   corrects_sparse <-0
   totals <- 0 
   val_loss <- c()
   val_loss_mpm <-c()
-  val_loss_mpm2<-c()
   out_shape <- 1 #if binary classification or regression
   if (SICNN$input_skip) {
     if (!is.null(SICNN$criterion_trained) && SICNN$criterion_trained == "SIC") {
@@ -381,8 +355,8 @@ validate_SICNN <- function(SICNN,num_samples,test_dl,device = 'cpu'){
       output_mpm <- torch::torch_zeros_like(outputs)
       for(i in 1:num_samples){
         data <- b[[1]]$to(device = device)
-        outputs[i]<- SICNN(data,MPM=FALSE, deterministic = (!is.null(SICNN$criterion_trained) && SICNN$criterion_trained == "SIC"))
-        output_mpm[i] <- SICNN(data,MPM=TRUE, deterministic = (!is.null(SICNN$criterion_trained) && SICNN$criterion_trained == "SIC"))
+        outputs[i]<- SICNN(data,sparse=FALSE)
+        output_mpm[i] <- SICNN(data,sparse=TRUE)
         
       }
       out_full <-outputs$mean(1) #average over num_samples dimension
