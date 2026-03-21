@@ -323,9 +323,9 @@ plot.SICNN_ConvNet <- function(x, threshold=0.5, ...) {
   sz_out <- max(3, 15 / sqrt(n_out))
   v_sizes <- c(15, 15, 15, rep(sz_flat, n_in), rep(sz_hid, n_hid), rep(sz_out, n_out))
   
-  oldpar <- par(no.readonly = TRUE)
-  on.exit(par(oldpar))
-  par(mar=c(0,0,2,0))
+  oldpar <- graphics::par(no.readonly = TRUE)
+  on.exit(graphics::par(oldpar))
+  graphics::par(mar=c(0,0,2,0))
   
   igraph::plot.igraph(g, layout=plot_points, vertex.size=v_sizes, vertex.label=NA, 
        vertex.shape=v_shapes, edge.arrow.size=0.1, edge.width=0.2, 

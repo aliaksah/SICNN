@@ -17,6 +17,6 @@
 Invisible NULL.
 }
 \description{
-Plots the Convolutional Network topology using square node abstractions for
-the convolutional layers and proper sparse visualizations for the fully connected parts.
+Plots the Convolutional Network topology using a single square node abstraction
+for each convolutional layer, expanding into a sparse bipartite visualization for the fully connected parts.
 }

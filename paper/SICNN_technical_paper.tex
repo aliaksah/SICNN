@@ -102,4 +102,19 @@ To demonstrate the flexibility of the SICNN framework across deeply structured d
 We applied a static Smooth BIC penalty ($\lambda = \log(n)$) alongside a threshold of $\tau = 0.5$. Within a single epoch of training, the Convolutional SICNN rapidly stabilized, natively discarding redundant spatial filters and aggressively pruning the millions of dense connection pairings originating from the flattened convolution output maps.
 The network flawlessly isolated the primary edge features critical for distinguishing local Kuzushiji stroke patterns, achieving $\sim 90.0\%$ test accuracy while simultaneously collapsing dense 4D matrices into mathematically optimal, human-interpretable sub-networks safely in parameter space.
 
+\section{Practical Guide to Tuning SICNN Parameters}
+To safely achieve globally favorable optimization configurations yielding both high accuracy and robust sparsity on real-world datasets, the following hierarchical hyperparameter tuning strategy is recommended:
+
+\textbf{1. Penalty Coefficient ($\lambda$):} 
+The primary driver of structural penalization. If the final network yields $\sim 0\%$ sparsity despite completing the epsilon decay, the data loss is overwhelmingly dominating the structural penalty. In such cases, explicitly increase the \texttt{penalty} argument (e.g., from default $\log(n)$ to $2\log(n), 5\log(n),$ or $10\log(n)$). Conversely, if the network collapses to $100\%$ sparsity and yields random-chance accuracy, the penalty is too aggressive and must be relaxed.
+
+\textbf{2. Epsilon Telescope Scheduling (\texttt{steps\_T}):}
+The $L_0$ surrogate approximation relies directly on the exponential decay of $\epsilon$. If $\epsilon$ drops strictly to its minimal boundary (\texttt{epsilon\_T}) too rapidly, the surrogate contour rigidly approaches a step function prematurely, forcing gradients to zero and preventing further weight exploration. Set \texttt{steps\_T} to span at least $60\%-80\%$ of your total \texttt{epochs} to guarantee smooth continuous penalization during active learning.
+
+\textbf{3. Base Learning Rate (\texttt{lr}) and Schedulers:}
+Because the magnitude of active weights determines their survival against the $\epsilon$ boundary, learning rates that are exceedingly low prevent cleanly separating beneficial weights from the penalization well. Utilize an initialized learning rate of $\sim 0.01 - 0.05$ paired with a \texttt{scheduler="step"} to forcefully optimize feature combinations early in the training array before settling into fine-grained local minima.
+
+\textbf{4. The SIC Threshold (\texttt{sic\_threshold}):}
+After training completes, prediction inference uses this cutoff to strictly sever computational pathways. If the model exhibits high training performance but unexpectedly weak sparse metrics, pushing $\tau$ closer to $0.5$ combined with a higher penalty forces harder delineations, while dropping $\tau \to 10^{-4}$ will safely revive structurally weak but mathematically supportive weights to preserve fragile predictive accuracy.
+
 \end{document}

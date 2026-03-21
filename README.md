@@ -54,10 +54,11 @@ To train the models, we apply `train_SICNN` which relies on an exponentially dec
 # Track the number of samples mapping to log(n) regularization
 n_train <- nrow(Raisin_Dataset) * 0.8
 results_input_skip <- suppressMessages(train_SICNN(
-    epochs = 1500, restarts = 1, SICNN = model_input_skip, 
-    lr = 0.005, train_dl = train_loader, device = device,
-    scheduler = "step", sch_step_size = 500, n_train = n_train,
-    epsilon_1 = 1, epsilon_T = 1e-5, steps_T = 200, sic_threshold = 0.5
+    epochs = 5000, restarts = 1, SICNN = model_input_skip, 
+    lr = 0.01, train_dl = train_loader, device = device,
+    scheduler = "step", sch_step_size = 2000, n_train = n_train,
+    epsilon_1 = 1, epsilon_T = 1e-4, steps_T = 4000, sic_threshold = 0.5,
+    penalty = 15 * log(n_train)
 ))
 ```
 
