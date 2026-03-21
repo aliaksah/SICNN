@@ -9,7 +9,7 @@
 \arguments{
 \item{x}{An object of class \code{SICNN_ConvNet}}
 
-\item{threshold}{Numeric threshold for identifying active edges in FC layers (default 0.5).}
+\item{threshold}{Numeric threshold for identifying active edges (default 0.5).}
 
 \item{...}{Additional arguments.}
 }
@@ -17,6 +17,6 @@
 Invisible NULL.
 }
 \description{
-Plots the first 16 filters of the first convolutional layer
-alongside a bipartite-style graph topology for the fully connected layers.
+Plots the Convolutional Network topology using square node abstractions for
+the convolutional layers and proper sparse visualizations for the fully connected parts.
 }

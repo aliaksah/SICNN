@@ -248,10 +248,10 @@ SICNN_plot <- function(model,layer_spacing = 1,neuron_spacing = 1,vertex_size = 
 
 
 #' @title Plot SICNN Convolutional Network
-#' @description Plots the first 16 filters of the first convolutional layer 
-#' alongside a bipartite-style graph topology for the fully connected layers.
+#' @description Plots the Convolutional Network topology using square node abstractions for 
+#' the convolutional layers and proper sparse visualizations for the fully connected parts.
 #' @param x An object of class \code{SICNN_ConvNet}
-#' @param threshold Numeric threshold for identifying active edges in FC layers (default 0.5).
+#' @param threshold Numeric threshold for identifying active edges (default 0.5).
 #' @param ... Additional arguments.
 #' @return Invisible NULL.
 #' @method plot SICNN_ConvNet
@@ -262,69 +262,91 @@ plot.SICNN_ConvNet <- function(x, threshold=0.5, ...) {
     return(invisible(x))
   }
   
-  weights <- as.array(x$conv1$weight_mean$detach()$cpu())
-  num_filters <- min(dim(weights)[1], 16)
+  # Extract Dimensions
+  n_c1 <- x$conv1$out_channels
+  n_c2 <- x$conv2$out_channels
+  n_in <- x$fc1$in_features
+  n_hid <- x$fc1$out_features
+  n_out <- x$fc2$out_features
   
-  oldpar <- par(no.readonly = TRUE)
-  on.exit(par(oldpar))
+  # 1. Conv1 Alpha (Spatial Max)
+  alp_c1_t <- torch::torch_max(torch::torch_max(x$conv1$alpha_active_path$detach()$cpu(), dim=4)[[1]], dim=3)[[1]]
+  alp_c1 <- t(as.matrix(alp_c1_t > threshold)) * 1
   
-  # Layout: Filter images on the left, FC network on the right
-  # We will just do a standard multi-plot layout. 16 filters = 4x4 grid. The FC graph will be below it.
-  layout(matrix(c(rep(1:16, each=2), rep(17, 32)), nrow=6, byrow=TRUE))
-  par(mar=c(1,1,2,1))
+  # 2. Conv2 Alpha (Spatial Max)
+  alp_c2_t <- torch::torch_max(torch::torch_max(x$conv2$alpha_active_path$detach()$cpu(), dim=4)[[1]], dim=3)[[1]]
+  alp_c2 <- t(as.matrix(alp_c2_t > threshold)) * 1
   
-  # Plot Filters
-  for (i in 1:16) {
-    if (i <= num_filters) {
-      img <- weights[i, 1, , ]
-      # Normalize filter for visualization
-      img <- (img - min(img)) / (max(img) - min(img) + 1e-8)
-      image(img, axes=FALSE, col=grey(seq(0, 1, length=256)), 
-            main=sprintf("Conv1 Filter %d", i))
-    } else {
-      plot.new()
-    }
+  # 3. Flattening routing (Conv2 -> FC Input)
+  alp_flatten <- matrix(0, nrow = n_c2, ncol = n_in)
+  pixels_per_channel <- max(1, n_in / n_c2)
+  for (c in 1:n_c2) {
+    alp_flatten[c, ((c-1)*pixels_per_channel + 1):(c*pixels_per_channel)] <- 1
   }
   
-  # Plot FC Network Graph
-  # Due to the extreme size of 1024 -> 300 -> 10, we will intelligently subsample 
-  # or just draw the active connections. Drawing 1000+ nodes is heavy but manageable.
+  # 4. FC1 Alpha
+  alp_fc1 <- t(as.matrix(x$fc1$alpha_active_path$detach()$cpu() > threshold)) * 1
   
-  alp1 <- t(as.matrix(x$fc1$alpha_active_path$detach()$cpu() > threshold)) * 1
-  alp2 <- t(as.matrix(x$fc2$alpha_active_path$detach()$cpu() > threshold)) * 1
+  # 5. FC2 Alpha
+  alp_fc2 <- t(as.matrix(x$fc2$alpha_active_path$detach()$cpu() > threshold)) * 1
   
-  n_in <- nrow(alp1)
-  n_hid <- ncol(alp1)
-  n_out <- ncol(alp2)
-  total_nodes <- n_in + n_hid + n_out
-  
+  # Construct Graph
+  total_nodes <- 1 + n_c1 + n_c2 + n_in + n_hid + n_out
   adj_mat <- matrix(0, nrow=total_nodes, ncol=total_nodes)
-  # Connect Input -> Hidden
-  adj_mat[1:n_in, (n_in+1):(n_in+n_hid)] <- alp1
-  # Connect Hidden -> Output
-  adj_mat[(n_in+1):(n_in+n_hid), (n_in+n_hid+1):total_nodes] <- alp2
+  
+  # Map offsets
+  o_in <- 1
+  o_c1 <- o_in + 1
+  o_c2 <- o_c1 + n_c1
+  o_fc_in <- o_c2 + n_c2
+  o_fc_hid <- o_fc_in + n_in
+  o_fc_out <- o_fc_hid + n_hid
+  
+  adj_mat[o_in, o_c1:(o_c1+n_c1-1)] <- alp_c1
+  adj_mat[o_c1:(o_c1+n_c1-1), o_c2:(o_c2+n_c2-1)] <- alp_c2
+  adj_mat[o_c2:(o_c2+n_c2-1), o_fc_in:(o_fc_in+n_in-1)] <- alp_flatten
+  adj_mat[o_fc_in:(o_fc_in+n_in-1), o_fc_hid:(o_fc_hid+n_hid-1)] <- alp_fc1
+  adj_mat[o_fc_hid:(o_fc_hid+n_hid-1), o_fc_out:(o_fc_out+n_out-1)] <- alp_fc2
   
   g <- igraph::graph_from_adjacency_matrix(adj_mat, mode="directed")
   
-  # Compute Coordinates
+  # Layout Coordinates
   plot_points <- matrix(0, nrow=total_nodes, ncol=2)
-  # X coords: layer 1, 2, 3
-  plot_points[1:n_in, 1] <- 1
-  plot_points[(n_in+1):(n_in+n_hid), 1] <- 2
-  plot_points[(n_in+n_hid+1):total_nodes, 1] <- 3
+  plot_points[o_in, 1] <- 1
+  plot_points[o_c1:(o_c1+n_c1-1), 1] <- 2
+  plot_points[o_c2:(o_c2+n_c2-1), 1] <- 3
+  plot_points[o_fc_in:(o_fc_in+n_in-1), 1] <- 4
+  plot_points[o_fc_hid:(o_fc_hid+n_hid-1), 1] <- 5
+  plot_points[o_fc_out:(o_fc_out+n_out-1), 1] <- 6
   
-  # Y coords: centered
-  plot_points[1:n_in, 2] <- seq(-n_in/2, n_in/2, length.out=n_in)
-  plot_points[(n_in+1):(n_in+n_hid), 2] <- seq(-n_hid/2, n_hid/2, length.out=n_hid)
-  plot_points[(n_in+n_hid+1):total_nodes, 2] <- seq(-n_out/2, n_out/2, length.out=n_out)
+  get_y <- function(n) { if(n==1) 0 else seq(-n/2, n/2, length.out=n) }
+  plot_points[o_in, 2] <- get_y(1)
+  plot_points[o_c1:(o_c1+n_c1-1), 2] <- get_y(n_c1)
+  plot_points[o_c2:(o_c2+n_c2-1), 2] <- get_y(n_c2)
+  plot_points[o_fc_in:(o_fc_in+n_in-1), 2] <- get_y(n_in)
+  plot_points[o_fc_hid:(o_fc_hid+n_hid-1), 2] <- get_y(n_hid)
+  plot_points[o_fc_out:(o_fc_out+n_out-1), 2] <- get_y(n_out)
   
-  # Colors
-  v_colors <- c(rep('#D5E8D4', n_in), rep('#ADD8E6', n_hid), rep('#F8CECC', n_out))
+  # Aestetics
+  v_colors <- c('#D5E8D4', rep('#D5E8D4', n_c1), rep('#ADD8E6', n_c2), 
+                rep('#ADD8E6', n_in), rep('#ADD8E6', n_hid), rep('#F8CECC', n_out))
   
+  v_shapes <- c("square", rep("square", n_c1), rep("square", n_c2), 
+                rep("circle", n_in), rep("circle", n_hid), rep("circle", n_out))
+  
+  sz_flat <- max(0.5, 15 / sqrt(n_in))
+  sz_hid <- max(1, 15 / sqrt(n_hid))
+  sz_out <- max(3, 15 / sqrt(n_out))
+  v_sizes <- c(10, rep(6, n_c1), rep(6, n_c2), rep(sz_flat, n_in), rep(sz_hid, n_hid), rep(sz_out, n_out))
+  
+  oldpar <- par(no.readonly = TRUE)
+  on.exit(par(oldpar))
   par(mar=c(0,0,2,0))
-  igraph::plot.igraph(g, layout=plot_points, vertex.size=0.5, vertex.label=NA, 
-       edge.arrow.size=0.1, edge.width=0.2, vertex.color=v_colors, vertex.frame.color=NA,
-       main="Fully Connected Topology (Active Connections)")
+  
+  igraph::plot.igraph(g, layout=plot_points, vertex.size=v_sizes, vertex.label=NA, 
+       vertex.shape=v_shapes, edge.arrow.size=0.1, edge.width=0.2, 
+       vertex.color=v_colors, vertex.frame.color="grey30",
+       main="SICNN Convolutional Architecture Topology")
   
   invisible(x)
 }
