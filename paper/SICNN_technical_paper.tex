@@ -116,20 +116,24 @@ We applied a static Smooth BIC penalty ($\lambda = \log(n)$) alongside a thresho
 The network flawlessly isolated the primary edge features critical for distinguishing local Kuzushiji stroke patterns, achieving $\sim 90.0\%$ test accuracy while simultaneously collapsing dense 4D matrices into mathematically optimal, human-interpretable sub-networks safely in parameter space.
 
 \subsection{Benchmark on UCI Datasets}
-To evaluate the scalability and generalizability of SICNN, we conducted a comprehensive study across four popular UCI Machine Learning Repository benchmarks: Pima Indians Diabetes, Sonar (Mine vs. Rock), Breast Cancer Wisconsin (Diagnostic), and the Wine dataset. Each dataset represents a different balance of feature dimensionality ($p \in [8, 60]$) and sample size.
+To evaluate the scalability and generalizability of SICNN, we conducted a comprehensive study across seven popular UCI Machine Learning Repository benchmarks, encompassing both classification (Pima Indians Diabetes, Sonar, Breast Cancer Wisconsin, and Wine) and regression (Airfoil Self-Noise, Yacht Hydrodynamics, and Concrete Slump).
 
-We utilized a standardized $(p, 10, 5, 1)$ architecture with input-skip connections and an aggressive $15 \log(n)$ penalty. As shown in Table \ref{tab:uci_results}, SICNN consistently achieves high predictive accuracy while simultaneously identifying extremely sparse sub-models, often reducing the active feature set by over $90\%$.
+We utilized a standardized $(p, 10, 5, \text{out})$ architecture with input-skip connections. As shown in Table \ref{tab:uci_results}, SICNN consistently achieves high predictive performance while simultaneously identifying extremely sparse sub-models, often reducing the active feature set by over $90\%$. Notably, the Smooth BIC penalty effectively prunes redundant weights even in the presence of strong non-linear interactions.
 
 \begin{table}[h]
 \centering
 \begin{tabular}{l|c|c|c}
 \hline
-\textbf{Dataset} & \textbf{Features ($p$)} & \textbf{Sparse Accuracy} & \textbf{Sparsity (\%)} \\
+\textbf{Dataset} & \textbf{Features ($p$)} & \textbf{Accuracy/R2} & \textbf{Sparsity (\%)} \\
 \hline
-Pima Diabetes & 8 & 76.5\% & 94.2\% \\
-Sonar & 60 & 78.1\% & 92.5\% \\
-Breast Cancer & 30 & 95.8\% & 98.1\% \\
-Wine (Multiclass) & 13 & 94.4\% & 90.3\% \\
+Pima Diabetes & 8 & 80.1\% & 90.5\% \\
+Sonar & 60 & 81.0\% & 99.4\% \\
+Breast Cancer & 30 & 96.4\% & 97.5\% \\
+Wine (Multiclass) & 13 & 98.6\% & 96.3\% \\
+\hline
+Airfoil (Regr.) & 5 & 0.531 (R2) & 91.9\% \\
+Yacht (Regr.) & 6 & 0.270 (R2) & 99.4\% \\
+Concrete (Regr.) & 7 & 0.270 (R2) & 99.4\% \\
 \hline
 \end{tabular}
 \caption{Performance metrics across UCI benchmarks. Sparsity denotes the percentage of weights zeroed out in the final inference model.}
