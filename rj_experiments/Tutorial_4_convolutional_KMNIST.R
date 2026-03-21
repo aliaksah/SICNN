@@ -54,7 +54,7 @@ model$to(device = device)
 # ---------------------------------------------------------
 # 4. Train the Model
 # ---------------------------------------------------------
-n_epochs <- 50
+n_epochs <- 1
 cat("Starting training for", n_epochs, "epochs...\n")
 
 res <- train_SICNN(

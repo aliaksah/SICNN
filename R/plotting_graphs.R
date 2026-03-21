@@ -252,6 +252,7 @@ SICNN_plot <- function(model,layer_spacing = 1,neuron_spacing = 1,vertex_size = 
 #' @param x An object of class \code{SICNN_ConvNet}
 #' @param ... Additional arguments.
 #' @return Invisible NULL.
+#' @method plot SICNN_ConvNet
 #' @export
 plot.SICNN_ConvNet <- function(x, ...) {
   message("Plotting graph structures is not supported for Convolutional Neural Networks.")
