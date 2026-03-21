@@ -520,6 +520,15 @@ SICNN_ConvNet <- torch::nn_module(
     ))
   },
   
+  sic_density = function(epsilon, threshold = 0.5, threshold_type = "phi"){
+    counts <- self$sic_weight_counts(epsilon, threshold, threshold_type)
+    return(counts["active"] / counts["total"])
+  },
+  
+  sic_density_active_path = function(epsilon, threshold = 0.5, threshold_type = "phi"){
+    return(NA)
+  },
+  
   compute_paths = function(epsilon = NULL, threshold = NULL, threshold_type = NULL){
     invisible(NULL)
   },
