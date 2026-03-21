@@ -4,10 +4,12 @@
 \alias{plot.SICNN_ConvNet}
 \title{Plot SICNN Convolutional Network}
 \usage{
-\method{plot}{SICNN_ConvNet}(x, ...)
+\method{plot}{SICNN_ConvNet}(x, threshold = 0.5, ...)
 }
 \arguments{
 \item{x}{An object of class \code{SICNN_ConvNet}}
+
+\item{threshold}{Numeric threshold for identifying active edges in FC layers (default 0.5).}
 
 \item{...}{Additional arguments.}
 }
@@ -15,5 +17,6 @@
 Invisible NULL.
 }
 \description{
-Convolutional Networks cannot be plotted natively using the graph structures designed for Fully Connected Layers.
+Plots the first 16 filters of the first convolutional layer
+alongside a bipartite-style graph topology for the fully connected layers.
 }
