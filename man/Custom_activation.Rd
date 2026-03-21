@@ -7,7 +7,7 @@
 Custom_activation()
 }
 \value{
-Returns a `\code{torch::nn_module} that can be used in an \code{LBBNN_Net}
+Returns a `\code{torch::nn_module} that can be used in an \code{SICNN_Net}
 }
 \description{
 The first 3 entries are customized

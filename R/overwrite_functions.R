@@ -48,6 +48,8 @@ get_input_inclusions <- function(model){
 #' @description Summary method for objects of the \code{SICNN_Net} class. 
 #' Only applies to objects trained with \code{input_skip = TRUE}.
 #' @param object An object of class \code{SICNN_Net}.
+#' @param epsilon numeric, the final epsilon parameter corresponding to the trained model. Default is 1e-5.
+#' @param threshold numeric, the threshold for determining active edges. Default is 0.5.
 #' @param ... further arguments passed to or from other methods.
 #' @details
 #' The returned table combines two types of information:
@@ -68,12 +70,8 @@ get_input_inclusions <- function(model){
 #'train_loader <- torch::dataloader(train_data,batch_size = 3,shuffle=FALSE)
 #'problem<-'regression'
 #'sizes <- c(2,1,1) 
-#'inclusion_priors <-c(0.9,0.2) 
-#'inclusion_inits <- matrix(rep(c(-10,10),2),nrow = 2,ncol = 2)
-#'stds <- c(1.0,1.0)
-#'model <- SICNN_Net(problem,sizes,inclusion_priors,stds,inclusion_inits,flow = FALSE,
-#'input_skip = TRUE)
-#'train_SICNN(epochs = 1,SICNN = model, lr = 0.01,train_dl = train_loader)
+#'model <- SICNN_Net(problem, sizes, input_skip = TRUE)
+#'train_SICNN(epochs = 1, SICNN = model, lr = 0.01, train_dl = train_loader, n_train = 3)
 #'summary(model)
 #'}
 #' @export
@@ -183,12 +181,8 @@ summary.SICNN_Net <- function(object,
 #'train_loader <- torch::dataloader(train_data,batch_size = 3,shuffle=FALSE)
 #'problem<-'regression'
 #'sizes <- c(2,1,1) 
-#'inclusion_priors <-c(0.9,0.2) 
-#'inclusion_inits <- matrix(rep(c(-10,10),2),nrow = 2,ncol = 2)
-#'stds <- c(1.0,1.0)
-#'model <- SICNN_Net(problem,sizes,inclusion_priors,stds,inclusion_inits,flow = FALSE,
-#'input_skip = TRUE)
-#'train_SICNN(epochs = 1,SICNN = model, lr = 0.01,train_dl = train_loader)
+#'model <- SICNN_Net(problem, sizes, input_skip = TRUE)
+#'train_SICNN(epochs = 1, SICNN = model, lr = 0.01, train_dl = train_loader, n_train = 3)
 #'residuals(model)
 #'}
 #' @export
@@ -242,12 +236,8 @@ residuals.SICNN_Net <- function(object,type = c('response'), ...) {
 #'train_loader <- torch::dataloader(train_data,batch_size = 3,shuffle=FALSE)
 #'problem<-'regression'
 #'sizes <- c(2,1,1) 
-#'inclusion_priors <-c(0.9,0.2) 
-#'inclusion_inits <- matrix(rep(c(-10,10),2),nrow = 2,ncol = 2)
-#'stds <- c(1.0,1.0)
-#'model <- SICNN_Net(problem,sizes,inclusion_priors,stds,inclusion_inits,flow = FALSE,
-#'input_skip = TRUE)
-#'train_SICNN(epochs = 1,SICNN = model, lr = 0.01,train_dl = train_loader)
+#'model <- SICNN_Net(problem, sizes, input_skip = TRUE)
+#'train_SICNN(epochs = 1, SICNN = model, lr = 0.01, train_dl = train_loader, n_train = 3)
 #'coef(model,dataset = x, num_data = 1)
 #'}
 #' @export
@@ -354,12 +344,8 @@ coef.SICNN_Net <- function(object,dataset,inds = NULL,output_neuron = 1,num_data
 #'train_loader <- torch::dataloader(train_data,batch_size = 3,shuffle=FALSE)
 #'problem<-'regression'
 #'sizes <- c(2,1,1) 
-#'inclusion_priors <-c(0.9,0.2) 
-#'inclusion_inits <- matrix(rep(c(-10,10),2),nrow = 2,ncol = 2)
-#'stds <- c(1.0,1.0)
-#'model <- SICNN_Net(problem,sizes,inclusion_priors,stds,inclusion_inits,flow = FALSE,
-#'input_skip = TRUE)
-#'train_SICNN(epochs = 1,SICNN = model, lr = 0.01,train_dl = train_loader)
+#'model <- SICNN_Net(problem, sizes, input_skip = TRUE)
+#'train_SICNN(epochs = 1, SICNN = model, lr = 0.01, train_dl = train_loader, n_train = 3)
 #'predict(model,mpm = FALSE,newdata = train_loader,draws = 1)
 #'}
 #' @export
@@ -419,11 +405,7 @@ predict.SICNN_Net <- function(object,newdata,mpm = FALSE,draws = 10,device = 'cp
 #'train_loader <- torch::dataloader(train_data,batch_size = 3,shuffle=FALSE)
 #'problem<-'regression'
 #'sizes <- c(2,1,1) 
-#'inclusion_priors <-c(0.9,0.2) 
-#'inclusion_inits <- matrix(rep(c(-10,10),2),nrow = 2,ncol = 2)
-#'stds <- c(1.0,1.0)
-#'model <- SICNN_Net(problem,sizes,inclusion_priors,stds,inclusion_inits,flow = FALSE,
-#'input_skip = TRUE)
+#'model <- SICNN_Net(problem, sizes, input_skip = TRUE)
 #'print(model)
 #'}
 #' @export

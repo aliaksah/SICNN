@@ -33,7 +33,7 @@ transformation layers.
 }
 }
 \description{
-Used in\code{LBBNN_Net} when the argument \code{flow = TRUE}.
+Used in\code{SICNN_Net} when the argument \code{flow = TRUE}.
 Contains a \code{torch::nn_module} where the initial vector gets transformed through
 all the layers in the module. Also computes the log-determinant of the Jacobian for the entire
 transformation, which is just the sum of log-determinant of the independent layers.

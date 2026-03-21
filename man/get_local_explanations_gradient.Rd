@@ -2,7 +2,7 @@
 % Please edit documentation in R/local_explanations.R
 \name{get_local_explanations_gradient}
 \alias{get_local_explanations_gradient}
-\title{Function to get gradient based local explanations for input-skip LBBNNs.}
+\title{Function to get gradient based local explanations for input-skip SICNNs.}
 \usage{
 get_local_explanations_gradient(
   model,
@@ -14,7 +14,7 @@ get_local_explanations_gradient(
 )
 }
 \arguments{
-\item{model}{A \code{LBBNN_Net} with input-skip}
+\item{model}{A \code{SICNN_Net} with input-skip}
 
 \item{input_data}{The data to be explained (one sample).}
 

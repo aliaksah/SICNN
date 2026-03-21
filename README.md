@@ -1,229 +1,82 @@
-
-<!-- README.md is generated from README.Rmd. Please edit that file -->
-
-# LBBNN
+# SICNN
 
 <!-- badges: start -->
 
-[![](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
-[![](https://img.shields.io/github/last-commit/LarsELund/LBBNN.svg)](https://github.com/LarsELund/LBBNN/commits/main)
-[![](https://img.shields.io/github/languages/code-size/LarsELund/LBBNN.svg)](https://github.com/LarsELund/LBBNN)
-[![R-CMD-check](https://github.com/LarsELund/LBBNN/workflows/R-CMD-check/badge.svg)](https://github.com/LarsELund/LBBNN/actions)
-[![License:
-MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental) [![](https://img.shields.io/github/last-commit/aliaksah/SICNN.svg)](https://github.com/aliaksah/SICNN/commits/main) [![](https://img.shields.io/github/languages/code-size/aliaksah/SICNN.svg)](https://github.com/aliaksah/SICNN) [![R-CMD-check](https://github.com/aliaksah/SICNN/workflows/R-CMD-check/badge.svg)](https://github.com/aliaksah/SICNN/actions) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 <!-- badges: end -->
 
-The goal of LBBNN is to implement Latent Bayesian Binary Neural Networks
-(<https://openreview.net/pdf?id=d6kqUKzG3V>) in R, using the torch for R
-package. Currently, standard LBBNNs are implemented. In the future, we
-will also implement LBBNNs with input-skip (see
-<https://arxiv.org/abs/2503.10496>).
+The goal of SICNN is to implement Smooth Information Criterion Neural Networks in R, using the torch package. SICNN is a scalable architecture designed exclusively for seamless, continuous parameter space pruning. Evolved from LBBNNs, SICNN operates dynamically and directly on model weight structures by natively leveraging a continuous smooth approximation of the $L_0$ norm. 
 
 ## Installation
 
-You can install the development version of LBBNN from
-[GitHub](https://github.com/LarsELund/LBBNN) with:
+You can install the development version of SICNN from [GitHub](https://github.com/aliaksah/SICNN) with:
 
 ``` r
 # install.packages("pak")
-pak::pak("LarsELund/LBBNN")
+pak::pak("aliaksah/SICNN")
 ```
 
 ## Example
 
-This example demonstrates how to implement a simple feed forward LBBNN
-on the raisin dataset, using both the mean-field posterior and
-normalizing flows. We start by demonstrating how to preprocess the data
-so it can be used within the torch ecosystem.
+This example demonstrates how to implement a SICNN model on the raisin dataset.
 
-``` r
-library(LBBNN)
+```r
+library(SICNN)
 library(ggplot2)
 library(torch)
 
-#the get_dataloaders function takes a data.frame dataset as input, then splits the data
-#in a training and validation set based on train_proportion, and returns torch dataloader 
-#objects.
-loaders <- get_dataloaders(Raisin_Dataset,train_proportion = 0.8,train_batch_size = 720,test_batch_size = 180)
+# the get_dataloaders function handles preprocessing
+loaders <- get_dataloaders(Raisin_Dataset, train_proportion = 0.8, train_batch_size = 720, test_batch_size = 180)
 train_loader <- loaders$train_loader
 test_loader <- loaders$test_loader
 ```
 
-To initialize the LBBNN, we need to define several hyperparameters.
-First, the user must define what type of problem they are facing. This
-could be either binary classification (as in this case), multiclass
-classification (more than two classes), or regression (continuous
-output). Next, the user needs to define a size vector. The first element
-in the vector is the number of variables in the dataset (7 in this
-case), the last element is the number of output neurons (1 here), and
-the elements in between represent the number of neurons in the hidden
-layer(s). Then, the user must define the prior inclusion probability for
-each weight matrix (all weights share the same prior). This parameter is
-important as it reflects prior beliefs about how dense the network
-should be. The user also needs to define the prior standard deviation
-for the weight and bias parameters. Lastly, the user must define the
-initialization of the inclusion parameters.
+To initialize the SICNN, we need to define the type of problem and network dimension sizes.
 
-``` r
+```r
 problem <- 'binary classification'
-sizes <- c(7,5,5,1) #7 input variables, one hidden layer of 100 neurons, 1 output neuron.
-inclusion_priors <-c(0.5,0.5,0.5) #one prior probability per weight matrix.
-stds <- c(1,1,1) #prior standard deviation for each layer.
-inclusion_inits <- matrix(rep(c(-10,15),3),nrow = 2,ncol = 3) #one low and high for each layer
-device <- 'cpu' #can also be mps or gpu.
+sizes <- c(7,5,5,1) # 7 input variables, two hidden layers of 5 neurons each, 1 output neuron.
+device <- 'cpu' # can also be mps or gpu.
 ```
 
-We are now ready to define the models. Here we define two models: one
-with the mean-field posterior and one with normalizing flows:
+We define the core structural model using `SICNN_Net`.
 
-``` r
+```r
 torch_manual_seed(0)
-model_input_skip <- LBBNN_Net(problem_type = problem,sizes = sizes,prior = inclusion_priors,
-                      inclusion_inits = inclusion_inits,input_skip = TRUE,std = stds,
-                   flow = FALSE,device = device)
-model_LBBNN <- LBBNN_Net(problem_type = problem,sizes = sizes,prior = inclusion_priors,
-                   inclusion_inits = inclusion_inits,input_skip = FALSE,std = stds,
-                   flow = FALSE,device = device)
+model_input_skip <- SICNN_Net(problem_type = problem, sizes = sizes, 
+                              input_skip = TRUE, device = device)
 ```
 
-To train the models, one can use the function train_LBBNN. The function
-takes number of epochs, model to train, learning rate, and training data
-as arguments:
+To train the models, we apply `train_SICNN` which relies on an exponentially decaying smooth L0 surrogate to effectively drop inactive pathways.
 
-``` r
-#model_input_skip$local_explanation = TRUE #to make sure we are using RELU
-results_input_skip <- suppressMessages(train_LBBNN(epochs = 800,LBBNN = model_input_skip, lr = 0.005,train_dl = train_loader,device = device))
-#save the model 
-#torch::torch_save(model_input_skip$state_dict(), 
-#paste(getwd(),'/R/saved_models/README_input_skip_example_model.pth',sep = ''))
+```r
+# Track the number of samples mapping to log(n) regularization
+n_train <- nrow(Raisin_Dataset) * 0.8
+results_input_skip <- suppressMessages(train_SICNN(
+    epochs = 1500, restarts = 1, SICNN = model_input_skip, 
+    lr = 0.005, train_dl = train_loader, device = device,
+    scheduler = "step", sch_step_size = 500, n_train = n_train,
+    epsilon_1 = 1, epsilon_T = 1e-5, steps_T = 200, sic_threshold = 0.5
+))
 ```
 
-To evaluate performance on the validation data, one can use the function
-Validate_LBBNN. This function takes a model, number of samples for model
-averaging, and the validation data as input.
+Evaluate structural performance and accuracy on validation samples natively:
 
-``` r
-validate_LBBNN(LBBNN = model_input_skip,num_samples = 100,test_dl = test_loader,device)
-#> $accuracy_full_model
-#> [1] 0.8722222
-#> 
-#> $accuracy_sparse
-#> [1] 0.8666667
-#> 
-#> $density
-#> [1] 0.2523364
-#> 
-#> $density_active_path
-#> [1] 0.09345794
-#validate_LBBNN(LBBNN = model_flows,num_samples = 1000,test_dl = test_loader,device)
+```r
+validate_SICNN(SICNN = model_input_skip, num_samples = 1, test_dl = test_loader, device=device)
 ```
 
-Plot the global structure of the given model:
+Plot the global interconnected sparse structure of the active model pathways:
 
-``` r
-plot(model_input_skip,type = 'global',vertex_size = 13,edge_width = 0.6,label_size = 0.6)
+```r
+plot(model_input_skip, type = 'global', vertex_size = 13, edge_width = 0.6, label_size = 0.6)
 ```
 
-<img src="man/figures/README-unnamed-chunk-6-1.png" width="100%" />
+This structural architecture reflects precisely which of the 7 initial parameters remain viable variables. We can also plot local interactions relative to one patient/run directly via input-skip activations:
 
-Note that only 3 of the 7 input variables are used, where one of them
-only has a linear connection.
-
-This can also be seen using the summary function:
-
-``` r
-summary(model_input_skip)
-#> Summary of LBBNN_Net object:
-#> -----------------------------------
-#> Shows the number of times each variable was included from each layer
-#> -----------------------------------
-#> Then the average inclusion probability for each input from each layer
-#> -----------------------------------
-#> The final column shows the average inclusion probability across all layers
-#> -----------------------------------
-#>    L0 L1 L2    a0    a1    a2 a_avg
-#> x0  0  0  0 0.175 0.219 0.006 0.180
-#> x1  0  0  0 0.343 0.109 0.005 0.206
-#> x2  0  0  1 0.135 0.344 0.863 0.296
-#> x3  1  1  1 0.539 0.330 0.991 0.485
-#> x4  0  0  0 0.321 0.575 0.124 0.419
-#> x5  0  0  0 0.098 0.438 0.137 0.256
-#> x6  1  0  1 0.300 0.244 0.997 0.338
-#> -----------------------------------
-#> The model took 11.864 seconds to train, using cpu
-```
-
-The user can also plot local explanations for each input variable
-related to a prediction using plot():
-
-``` r
-x <- train_loader$dataset$tensors[[1]] #grab the dataset
-ind <- 42
-data <- x[ind,] #plot this specific data-point
-plot(model_input_skip,type = 'local',data = data,num_samples = 100)
-```
-
-<img src="man/figures/README-unnamed-chunk-8-1.png" width="100%" />
-
-Compute residuals: y_true - y_predicted
-
-``` r
-residuals(model_input_skip)[1:10]
-#>  [1] -0.47491318  0.46904647 -0.14563666  0.40983611 -0.05854724  0.19214028
-#>  [7] -0.08140449 -0.28510988 -0.12890983 -0.04447413
-```
-
-Get local explanations from some training data:
-
-``` r
-coef(model_input_skip,dataset = train_loader,inds = c(2,3,4,5,6))
-#>         lower       mean      upper
-#> x0  0.0000000  0.0000000  0.0000000
-#> x1  0.0000000  0.0000000  0.0000000
-#> x2 -0.1718342 -0.1708280 -0.1694423
-#> x3 -0.6384742 -0.6348897 -0.6288301
-#> x4  0.0000000  0.0000000  0.0000000
-#> x5  0.0000000  0.0000000  0.0000000
-#> x6 -2.2649529 -2.2543384 -2.2471136
-```
-
-Get predictions from the posterior:
-
-``` r
-predictions <- predict(model_input_skip,mpm = TRUE,newdata = test_loader,draws = 100)
-dim(predictions) #shape is (draws,samples,classes)
-#> [1] 100 180   1
-```
-
-Print the model:
-
-``` r
-print(model_input_skip)
-#> 
-#> ========================================
-#>           LBBNN Model Summary           
-#> ========================================
-#> 
-#> Module Overview:
-#>   - An `nn_module` containing 343 parameters.
-#> 
-#> ---------------- Submodules ----------------
-#>   - layers               : nn_module_list  # 305 parameters
-#>   - layers.0             : LBBNN_Linear    # 115 parameters
-#>   - layers.1             : LBBNN_Linear    # 190 parameters
-#>   - act                  : nn_leaky_relu   # 0 parameters
-#>   - out_layer            : LBBNN_Linear    # 38 parameters
-#>   - out                  : nn_sigmoid      # 0 parameters
-#>   - loss_fn              : nn_bce_loss     # 0 parameters
-#> 
-#> Model Configuration:
-#>   - LBBNN with input-skip 
-#>   - Optimized using variational inference without normalizing flows 
-#> 
-#> Priors:
-#>   - Prior inclusion probabilities per layer:  0.5, 0.5, 0.5 
-#>   - Prior std dev for weights per layer:     1, 1, 1 
-#> 
-#> =================================================================
+```r
+x <- train_loader$dataset$tensors[[1]] 
+data <- x[42,] # Evaluate specific dataset slice dynamically
+plot(model_input_skip, type = 'local', data = data)
 ```

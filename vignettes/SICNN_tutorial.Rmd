@@ -1,12 +1,12 @@
 ---
-title: "Getting started with LBBNN"
+title: "Getting started with SICNN"
 output:
   rmarkdown::html_vignette:
     df_print: paged
 params:
   eval: false
 vignette: >
-  %\VignetteIndexEntry{Getting started with LBBNN}
+  %\VignetteIndexEntry{Getting started with SICNN}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -21,12 +21,12 @@ knitr::opts_chunk$set(
 
 ## Introduction
 
-LBBNN implements Latent Bayesian Binary Neural Networks in R using the torch framework. This vignette walks through basic usage: data preparation, model definition, training, validation, and visualization.
+SICNN implements Smooth Information Criterion Neural Networks in R using the torch framework. This vignette walks through basic usage: data preparation, model definition, training, validation, and visualization.
 
 ## Setup
 
 ```{r}
-library(LBBNN)
+library(SICNN)
 library(ggplot2)
 library(torch)
 ```
@@ -45,41 +45,44 @@ test_loader  <- loaders$test_loader
 ```{r}
 problem <- 'binary classification'
 sizes <- c(7,5,5,1)
-inclusion_priors <- c(0.5,0.5,0.5)
-stds <- c(1,1,1)
-inclusion_inits <- matrix(rep(c(-10,15),3), nrow = 2, ncol = 3)
 device <- 'cpu'
 
 torch_manual_seed(0)
-model_input_skip <- LBBNN_Net(problem_type = problem, sizes = sizes, prior = inclusion_priors,
-                              inclusion_inits = inclusion_inits, input_skip = TRUE, std = stds,
-                              flow = FALSE, device = device)
+
+# We use the SICNN_Net structure natively
+model_input_skip <- SICNN_Net(problem_type = problem, sizes = sizes, 
+                              input_skip = TRUE, device = device)
 ```
 
 ## Train
 
 ```{r}
-results_input_skip <- train_LBBNN(epochs = 50, LBBNN = model_input_skip,
-                                  lr = 0.005, train_dl = train_loader, device = device)
+n_train <- nrow(Raisin_Dataset) * 0.8
+# Train the model mapping the objective to the Smooth BIC penalty naturally
+results_input_skip <- train_SICNN(epochs = 1500, restarts=1, SICNN = model_input_skip,
+                                  lr = 0.005, train_dl = train_loader, device = device,
+                                  scheduler = "step", sch_step_size = 500, n_train=n_train,
+                                  epsilon_1 = 1, epsilon_T = 1e-5, steps_T = 200, sic_threshold = 0.5)
 ```
 
 ## Validate
 
 ```{r}
-validate_LBBNN(LBBNN = model_input_skip, num_samples = 100,
+validate_SICNN(SICNN = model_input_skip, num_samples = 1,
                test_dl = test_loader, device = device)
 ```
 
 ## Plot structure and explanations
 
 ```{r}
-LBBNN_plot(model_input_skip, layer_spacing = 1, neuron_spacing = 1,
-           vertex_size = 15, edge_width = 0.5)
+# Plot sparse global architecture
+plot(model_input_skip, type = "global", vertex_size = 10, edge_width = 0.4, label_size=0.3)
 
+# Plot local explanation on an individual
 x <- torch::dataloader_next(torch::dataloader_make_iter(train_loader))[[1]]
 inds <- sample.int(dim(x)[1], 1)
 data <- x[inds,]
-plot_local_explanations_gradient(model_input_skip, data, num_samples = 100, device = device)
+plot(model_input_skip, type = "local", data = data)
 ```
 
 Note: All chunks in this vignette are non-evaluated by default to ensure fast builds and avoid backend constraints on CRAN/CI. You can set `eval=TRUE` locally.

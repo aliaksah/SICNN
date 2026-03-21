@@ -13,35 +13,21 @@ library(torch)
 #' \code{'binary classification'}, \code{'multiclass classification'}, \code{'regression'}, or \code{'custom'}.
 #' @param sizes Integer vector specifying the layer sizes of the network. The first element is the input size,
 #' the last is the output size, and the intermediate integers represent hidden layers.
-#' @param prior numeric vector of prior inclusion probabilities for each weight matrix.
-#' length must be \code{length(sizes) - 1}.
-#' @param std numeric vector of prior standard deviation for each weight matrix.
-#' length must be \code{length(sizes) - 1}.
-#' @param inclusion_inits numeric matrix of shape (2, number of weight matrices) 
-#' specifying the lower and upper bounds for initializations of the inclusion parameters.
 #' @param input_skip logical, whether to include input_skip.
-#' @param flow logical, whether to use normalizing flows.
-#' @param num_transforms integer, how many transformations to use in the flow.
-#' @param dims numeric vector, hidden dimension for the neural network in the RNVP transform.
 #' @param device the device to be trained on. Can be 'cpu', 'gpu' or 'mps'. Default is cpu.
 #' @param raw_output logical, whether the network skips the last sigmoid/softmax layer to compute local explanations.
 #' @param custom_act Allows the user to submit their own customized activation function.
 #' @param link User can define their own link function (not implemented yet).
 #' @param nll User can define their own likelihood function (not implemented yet).
-#' @param bias_inclusion_prob logical, determines whether the bias should be as associated with inclusion probabilities.
+#' @param bias logical, whether to include bias terms in linear layers. Default is TRUE.
 #' @examples
 #' \donttest{
 #' layers <- c(10,2,5) 
-#' alpha <- c(0.3,0.9)   
-#' stds <- c(1.0,1.0)   
-#' inclusion_inits <- matrix(rep(c(-10,10),2),nrow = 2,ncol = 2)
 #' prob <- 'multiclass classification'
-#' net <- SICNN_Net(problem_type = prob, sizes = layers, prior = alpha,std = stds
-#' ,inclusion_inits = inclusion_inits,input_skip = FALSE,flow = FALSE,device = 'cpu')
+#' net <- SICNN_Net(problem_type = prob, sizes = layers, input_skip = FALSE, device = 'cpu')
 #' x <- torch::torch_rand(20,10,requires_grad = FALSE)
 #' output <- net(x) 
-#' net$kl_div()$item() 
-#' net$density() 
+#' net$sic_density(epsilon=1e-5, threshold=0.5) 
 #' }
 #' @return A \code{torch::nn_module} object representing the SICNN. 
 #'   It includes the following methods:

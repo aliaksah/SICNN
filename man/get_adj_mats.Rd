@@ -7,13 +7,13 @@
 get_adj_mats(model)
 }
 \arguments{
-\item{model}{An instance of \code{LBBNN_Net} with input_skip enabled.}
+\item{model}{An instance of \code{SICNN_Net} with input_skip enabled.}
 }
 \value{
 A list of adjacency matrices, one for each hidden layer and the output layer.
 }
 \description{
-Takes the alpha active path matrices for each layer of the LBBNN and converts
+Takes the alpha active path matrices for each layer of the SICNN and converts
 them to adjacency matrices so that they can be plotted with igraph.
 }
 \keyword{internal}

@@ -24,13 +24,9 @@ library(torch)
 #' @param scheduler A torch learning rate scheduler object. Can be used to decay learning rate for better convergence, 
 #' currently only supports 'step'.
 #' @param sch_step_size Where to decay if using \code{torch::lr_step}. E.g. 1000 means learning rate is decayed every 1000 epochs.
-#' @param criterion character, either \code{"VI"} (default) for the original variational
-#' Bayes objective with KL-divergence, or \code{"SIC"} for the smooth information
-#' criterion of O’Neill and Burke (2023), which replaces the KL term with a smooth
-#' BIC-type penalty based on the smooth L0 norm.
-#' @param n_train integer, total number of training observations used when
-#' \code{criterion = "SIC"} to scale the BIC penalty via \eqn{\log(n_\mathrm{train})/2}.
-#' Ignored when \code{criterion = "VI"}.
+#' @param n_train integer, total number of training observations used to scale the BIC penalty via \eqn{\log(n_\mathrm{train})/2}.
+#' @param restarts integer, number of restarts mapping to distinct sparsity initializations. Default is 1.
+#' @param penalty numeric, explicit penalty coefficient to scale the L0 smooth approximation. Default is NULL (falls back to BIC scaling).
 #' @param epsilon_1 numeric, starting value of the \eqn{\epsilon}-telescope when using
 #' \code{criterion = "SIC"}. Defaults to 10, as in O’Neill and Burke (2023).
 #' @param epsilon_T numeric, final value of the \eqn{\epsilon}-telescope when using
@@ -54,11 +50,8 @@ library(torch)
 #'train_loader <- torch::dataloader(train_data,batch_size = 3,shuffle=FALSE)
 #'problem<-'regression'
 #'sizes <- c(2,1,1) 
-#'inclusion_priors <-c(0.9,0.2) 
-#'inclusion_inits <- matrix(rep(c(-10,10),2),nrow = 2,ncol = 2)
-#'stds <- c(1.0,1.0)
-#'model <- SICNN_Net(problem,sizes,inclusion_priors,stds,inclusion_inits,flow = FALSE)
-#'output <- train_SICNN(epochs = 1,SICNN = model, lr = 0.01,train_dl = train_loader)
+#'model <- SICNN_Net(problem, sizes, input_skip = FALSE)
+#'output <- train_SICNN(epochs = 1,SICNN = model, lr = 0.01,train_dl = train_loader, n_train=3)
 #'}
 #' @return A list with elements (returned invisibly):
 #'   \describe{

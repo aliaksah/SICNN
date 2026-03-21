@@ -2,7 +2,7 @@
 % Please edit documentation in R/local_explanations.R
 \name{plot_local_explanations_gradient}
 \alias{plot_local_explanations_gradient}
-\title{Plot the gradient based local explanations for one sample with input-skip LBBNNs.}
+\title{Plot the gradient based local explanations for one sample with input-skip SICNNs.}
 \usage{
 plot_local_explanations_gradient(
   model,
@@ -13,7 +13,7 @@ plot_local_explanations_gradient(
 )
 }
 \arguments{
-\item{model}{An instance of \code{LBBNN_Net} with input-skip enabled.}
+\item{model}{An instance of \code{SICNN_Net} with input-skip enabled.}
 
 \item{input_data}{The data to be explained (one sample).}
 

@@ -148,18 +148,18 @@ assign_names<- function(model){#assign names to the nodes before plotting
 #' @param save_svg the path where the plot will be saved if save_svg is not null.
 #' @examples
 #' \donttest{
-#' sizes <- c(2,3,3,2)
-#' problem <- 'multiclass classification'
-#' inclusion_priors <- c(0.1,0.1,0.1)
-#' std_priors <- c(1.0,1.0,1.0)
-#' inclusion_inits <- matrix(rep(c(-10,10),3), nrow = 2, ncol = 3)
+#' sizes <- c(2,3,3,1)
+#' problem <- 'regression'
 #' device <- 'cpu'
 #' torch::torch_manual_seed(0)
 #' model <- SICNN_Net(problem_type = problem, sizes = sizes,
-#'                    prior = inclusion_priors, inclusion_inits = inclusion_inits,
-#'                    input_skip = TRUE, std = std_priors, flow = FALSE,
-#'                    num_transforms = 2, dims = c(200,200), device = device)
-#' model$compute_paths_input_skip()
+#'                    input_skip = TRUE, device = device)
+#' x <- torch::torch_randn(3,2)
+#' b <- torch::torch_rand(2)
+#' y <- torch::torch_matmul(x,b)$unsqueeze(2)
+#' train_data <- torch::tensor_dataset(x,y)
+#' train_loader <- torch::dataloader(train_data, batch_size = 3)
+#' train_SICNN(epochs = 1, SICNN = model, lr = 0.01, train_dl = train_loader, n_train = 3)
 #' SICNN_plot(model, 1, 1, 14, 1)
 #' }
 #' @return This function produces plots as a side effect and does not return a value.
