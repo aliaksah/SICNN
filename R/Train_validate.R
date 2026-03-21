@@ -37,9 +37,9 @@ library(torch)
 #' \code{criterion = "SIC"}. Defaults to 1e-5.
 #' @param steps_T integer, number of steps in the \eqn{\epsilon}-telescope sequence
 #' when using \code{criterion = "SIC"}. Defaults to 100.
-#' @param sic_threshold numeric scalar in (0,1) used for reporting “active”
-#' edges under SIC (i.e., in thresholding \eqn{\phi_\epsilon(w_\mathrm{eff})}).
-#' This does not change the objective; it only affects the reported density/sparsity.
+#' @param sic_threshold numeric scalar used for reporting “active”
+#' edges under SIC. If \code{sic_threshold_type="phi"}, this acts as a threshold on \eqn{\phi_\epsilon(w_\mathrm{eff})} (typically in (0,1)). If \code{sic_threshold_type="abs"}, it's an absolute threshold on the unpenalized weight directly.
+#' @param sic_threshold_type character, either \code{"phi"} (default) or \code{"abs"}.
 #' @param sic_report_epsilon character, either \code{"current"} or \code{"final"}:
 #'   controls whether training logs use the current \eqn{\epsilon} from the
 #'   telescope, or always use \eqn{\epsilon_T} (the final level).
@@ -79,10 +79,12 @@ train_SICNN <- function(epochs,
                         epsilon_T = 1e-5,
                         steps_T = 100,
                         sic_threshold = 0.5,
+                        sic_threshold_type = c("phi", "abs"),
                         sic_report_epsilon = c("final", "current"),
                         restarts = 1,
                         penalty = NULL){
   sic_report_epsilon <- match.arg(sic_report_epsilon)
+  sic_threshold_type <- match.arg(sic_threshold_type)
   
   if (is.null(n_train) || !is.numeric(n_train) || length(n_train) != 1 || n_train <= 0) {
     stop("n_train must be a positive numeric scalar giving the number of training observations")
@@ -110,6 +112,7 @@ train_SICNN <- function(epochs,
   SICNN$sic_steps_T <- steps_T
   SICNN$sic_threshold <- sic_threshold
   SICNN$sic_report_epsilon <- sic_report_epsilon
+  SICNN$sic_report_threshold_type <- sic_threshold_type
   SICNN$sic_penalty <- sic_penalty
   opt <- torch::optim_adam(SICNN$parameters,lr = lr)
   if(! is.null(scheduler)){
@@ -168,6 +171,9 @@ train_SICNN <- function(epochs,
     corrects <- 0
     totals <- 0
     train_loss <- c()
+    ss_res <- 0
+    sum_y <- 0
+    sum_y_sq <- 0
     # map epoch to epsilon index
     idx <- min(steps_T, max(1, ceiling(epoch * steps_T/epochs)))
     epsilon <- eps_seq[idx]
@@ -233,7 +239,12 @@ train_SICNN <- function(epochs,
       }
       else{#for regression
         train_loss <- c(train_loss,loss_report)
-        
+        y_vals <- as.numeric(target$cpu())
+        out_vals <- as.numeric(output$cpu())
+        ss_res <- ss_res + sum((y_vals - out_vals)^2)
+        sum_y <- sum_y + sum(y_vals)
+        sum_y_sq <- sum_y_sq + sum(y_vals^2)
+        totals <- totals + length(y_vals)
       }
       loss$backward()
       opt$step()
@@ -245,7 +256,7 @@ train_SICNN <- function(epochs,
   
     train_acc <- corrects / totals
     if(SICNN$problem_type != 'regression'){
-      sic_counts <- SICNN$sic_weight_counts(epsilon = epsilon_report, threshold = sic_threshold)
+      sic_counts <- SICNN$sic_weight_counts(epsilon = epsilon_report, threshold = sic_threshold, threshold_type = sic_threshold_type)
       density_val <- as.numeric(sic_counts["active"] / sic_counts["total"])
       sparsity_val <- as.numeric(sic_counts["removed"] / sic_counts["total"]) * 100
       message(sprintf(
@@ -258,17 +269,20 @@ train_SICNN <- function(epochs,
       losses <- c(losses,mean(train_loss))
     }
     if(SICNN$problem_type == 'regression'){
-      sic_counts <- SICNN$sic_weight_counts(epsilon = epsilon_report, threshold = sic_threshold)
+      ss_tot <- sum_y_sq - (sum_y^2) / max(1, totals)
+      r2 <- if (ss_tot > 0) 1 - (ss_res / ss_tot) else 0
+      sic_counts <- SICNN$sic_weight_counts(epsilon = epsilon_report, threshold = sic_threshold, threshold_type = sic_threshold_type)
       density_val <- as.numeric(sic_counts["active"] / sic_counts["total"])
       sparsity_val <- as.numeric(sic_counts["removed"] / sic_counts["total"]) * 100
       message(sprintf(
-        "\nEpoch %d, training: loss = %3.5f, density = %3.5f, sparsity = %3.2f%% \n",
-        epoch, mean(train_loss), density_val, sparsity_val
+        "\nEpoch %d, training: loss = %3.5f, R2 = %3.5f, density = %3.5f, sparsity = %3.2f%% \n",
+        epoch, mean(train_loss), r2, density_val, sparsity_val
       ))
       
       losses <- c(losses,mean(train_loss))
+      accs <- c(accs, r2)
     }
-    sic_counts <- SICNN$sic_weight_counts(epsilon = epsilon_report, threshold = sic_threshold)
+    sic_counts <- SICNN$sic_weight_counts(epsilon = epsilon_report, threshold = sic_threshold, threshold_type = sic_threshold_type)
     active_weights <- c(active_weights, as.numeric(sic_counts["active"]))
     total_weights <- c(total_weights, as.numeric(sic_counts["total"]))
     removed_weights <- c(removed_weights, as.numeric(sic_counts["removed"]))
@@ -330,15 +344,16 @@ validate_SICNN <- function(SICNN,num_samples,test_dl,device = 'cpu'){
   val_loss <- c()
   val_loss_mpm <-c()
   out_shape <- 1 #if binary classification or regression
+  thr_type <- if(!is.null(SICNN$sic_report_threshold_type)) SICNN$sic_report_threshold_type else "phi"
   if (SICNN$input_skip) {
     if (!is.null(SICNN$criterion_trained) && SICNN$criterion_trained == "SIC") {
-      SICNN$compute_paths_input_skip(epsilon = SICNN$sic_epsilon_T, threshold = SICNN$sic_threshold)
+      SICNN$compute_paths_input_skip(epsilon = SICNN$sic_epsilon_T, threshold = SICNN$sic_threshold, threshold_type = thr_type)
     } else {
       SICNN$compute_paths_input_skip()
     }
   } else {
     if (!is.null(SICNN$criterion_trained) && SICNN$criterion_trained == "SIC") {
-      SICNN$compute_paths(epsilon = SICNN$sic_epsilon_T, threshold = SICNN$sic_threshold)
+      SICNN$compute_paths(epsilon = SICNN$sic_epsilon_T, threshold = SICNN$sic_threshold, threshold_type = thr_type)
     } else {
       SICNN$compute_paths()
     }
@@ -403,9 +418,10 @@ validate_SICNN <- function(SICNN,num_samples,test_dl,device = 'cpu'){
   if(!is.null(SICNN$criterion_trained) && SICNN$criterion_trained == "SIC"){
     epsilon_used <- if(!is.null(SICNN$sic_epsilon_T)) SICNN$sic_epsilon_T else 1e-5
     thr_used <- if(!is.null(SICNN$sic_threshold)) SICNN$sic_threshold else 0.5
-    density <- SICNN$sic_density(epsilon = epsilon_used, threshold = thr_used)
-    density2 <- SICNN$sic_density_active_path(epsilon = epsilon_used, threshold = thr_used)
-    sic_counts <- SICNN$sic_weight_counts(epsilon = epsilon_used, threshold = thr_used)
+    thr_type <- if(!is.null(SICNN$sic_report_threshold_type)) SICNN$sic_report_threshold_type else "phi"
+    density <- SICNN$sic_density(epsilon = epsilon_used, threshold = thr_used, threshold_type = thr_type)
+    density2 <- SICNN$sic_density_active_path(epsilon = epsilon_used, threshold = thr_used, threshold_type = thr_type)
+    sic_counts <- SICNN$sic_weight_counts(epsilon = epsilon_used, threshold = thr_used, threshold_type = thr_type)
     sparsity_pct <- as.numeric(sic_counts["removed"] / sic_counts["total"]) * 100
     active_weights <- as.numeric(sic_counts["active"])
     removed_weights <- as.numeric(sic_counts["removed"])

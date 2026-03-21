@@ -182,17 +182,20 @@ SICNN_Net <- torch::nn_module(
   },
 
   # Overall SIC density (proportion of active edges) based on w_eff.
-  sic_density = function(epsilon, threshold = 0.5){
+  sic_density = function(epsilon, threshold = 0.5, threshold_type = "phi"){
     if(missing(epsilon) || !is.numeric(epsilon) || length(epsilon) != 1 || epsilon <= 0){
       stop("epsilon must be a positive numeric scalar")
     }
-    if(!is.numeric(threshold) || length(threshold) != 1 || threshold <= 0 || threshold >= 1){
-      stop("threshold must be a numeric scalar in (0,1)")
+    if(!is.numeric(threshold) || length(threshold) != 1 || threshold <= 0){
+      stop("threshold must be a positive numeric scalar")
     }
     phi_active <- function(w_eff){
-      # phi_epsilon(w) = w^2/(w^2+epsilon^2)
-      w2 <- w_eff ^ 2
-      w2 / (w2 + epsilon ^ 2) > threshold
+      if(threshold_type == "abs"){
+        torch::torch_abs(w_eff) > threshold
+      } else {
+        w2 <- w_eff ^ 2
+        w2 / (w2 + epsilon ^ 2) > threshold
+      }
     }
     num_incl <- torch::torch_tensor(0, dtype = torch::torch_float32(), device = self$device)
     tot <- torch::torch_tensor(0, dtype = torch::torch_float32(), device = self$device)
@@ -210,19 +213,23 @@ SICNN_Net <- torch::nn_module(
   },
 
   # SIC density restricted to edges on the active paths (alpha_active_path mask).
-  sic_density_active_path = function(epsilon, threshold = 0.5){
+  sic_density_active_path = function(epsilon, threshold = 0.5, threshold_type = "phi"){
     if(missing(epsilon) || !is.numeric(epsilon) || length(epsilon) != 1 || epsilon <= 0){
       stop("epsilon must be a positive numeric scalar")
     }
-    if(!is.numeric(threshold) || length(threshold) != 1 || threshold <= 0 || threshold >= 1){
-      stop("threshold must be a numeric scalar in (0,1)")
+    if(!is.numeric(threshold) || length(threshold) != 1 || threshold <= 0){
+      stop("threshold must be a positive numeric scalar")
     }
     if(self$computed_paths == FALSE){
       if(self$input_skip){self$compute_paths_input_skip()} else {self$compute_paths()}
     }
     phi_active <- function(w_eff){
-      w2 <- w_eff ^ 2
-      w2 / (w2 + epsilon ^ 2) > threshold
+      if(threshold_type == "abs"){
+        torch::torch_abs(w_eff) > threshold
+      } else {
+        w2 <- w_eff ^ 2
+        w2 / (w2 + epsilon ^ 2) > threshold
+      }
     }
     num_incl <- torch::torch_tensor(0, dtype = torch::torch_float32(), device = self$device)
     tot <- torch::torch_tensor(0, dtype = torch::torch_float32(), device = self$device)
@@ -244,16 +251,20 @@ SICNN_Net <- torch::nn_module(
   },
 
   # Counts active/removed edges under SIC.
-  sic_weight_counts = function(epsilon, threshold = 0.5){
+  sic_weight_counts = function(epsilon, threshold = 0.5, threshold_type = "phi"){
     if(missing(epsilon) || !is.numeric(epsilon) || length(epsilon) != 1 || epsilon <= 0){
       stop("epsilon must be a positive numeric scalar")
     }
-    if(!is.numeric(threshold) || length(threshold) != 1 || threshold <= 0 || threshold >= 1){
-      stop("threshold must be a numeric scalar in (0,1)")
+    if(!is.numeric(threshold) || length(threshold) != 1 || threshold <= 0){
+      stop("threshold must be a positive numeric scalar")
     }
     phi_active <- function(w_eff){
-      w2 <- w_eff ^ 2
-      w2 / (w2 + epsilon ^ 2) > threshold
+      if(threshold_type == "abs"){
+        torch::torch_abs(w_eff) > threshold
+      } else {
+        w2 <- w_eff ^ 2
+        w2 / (w2 + epsilon ^ 2) > threshold
+      }
     }
     num_incl <- torch::torch_tensor(0, dtype = torch::torch_float32(), device = self$device)
     tot <- torch::torch_tensor(0, dtype = torch::torch_float32(), device = self$device)
@@ -272,12 +283,13 @@ SICNN_Net <- torch::nn_module(
     removed <- total - active
     return(c(active = active, total = total, removed = removed))
   },
-  compute_paths = function(epsilon = NULL, threshold = NULL){
+  compute_paths = function(epsilon = NULL, threshold = NULL, threshold_type = NULL){
     if(self$input_skip == TRUE){
       stop('self$input_skip must be FALSE to use this function')
     }
     if (is.null(epsilon)) epsilon <- self$sic_epsilon_T
     if (is.null(threshold)) threshold <- self$sic_threshold
+    if (is.null(threshold_type)) threshold_type <- if (!is.null(self$sic_report_threshold_type)) self$sic_report_threshold_type else "phi"
     self$computed_paths <- TRUE
     # sending an input through the network of alpha matrices (0 and 1)
     #and then backpropagating to find active paths
@@ -287,15 +299,23 @@ SICNN_Net <- torch::nn_module(
     
     for(l in self$layers$children){
       w_eff <- l$weight_mean$detach()
-      phi <- w_eff^2 / (w_eff^2 + epsilon^2)
-      alpha <- (phi > threshold) * 1
+      if(threshold_type == "abs"){
+        alpha <- (torch::torch_abs(w_eff) > threshold) * 1
+      } else {
+        phi <- w_eff^2 / (w_eff^2 + epsilon^2)
+        alpha <- (phi > threshold) * 1
+      }
       alpha$requires_grad = TRUE
       alpha_mats<- append(alpha_mats,alpha)
       x0 <- torch::torch_matmul(x0, torch::torch_t(alpha))
     }
     w_eff_out <- self$out_layer$weight_mean$detach()
-    phi_out <- w_eff_out^2 / (w_eff_out^2 + epsilon^2)
-    alpha_out <- ((phi_out > threshold) * 1)$detach()
+    if(threshold_type == "abs"){
+        alpha_out <- ((torch::torch_abs(w_eff_out) > threshold) * 1)$detach()
+    } else {
+        phi_out <- w_eff_out^2 / (w_eff_out^2 + epsilon^2)
+        alpha_out <- ((phi_out > threshold) * 1)$detach()
+    }
     alpha_out$requires_grad = TRUE
     alpha_mats <-append(alpha_mats,alpha_out)
     x0 <- torch::torch_matmul(x0, torch::torch_t(alpha_out))
@@ -327,12 +347,13 @@ SICNN_Net <- torch::nn_module(
     return(alpha_mats_out)
     
   },
-  compute_paths_input_skip = function(epsilon = NULL, threshold = NULL){
+  compute_paths_input_skip = function(epsilon = NULL, threshold = NULL, threshold_type = NULL){
     if(self$input_skip == FALSE){
       stop('self$input_skip must be TRUE to use this funciton')
     }
     if (is.null(epsilon)) epsilon <- self$sic_epsilon_T
     if (is.null(threshold)) threshold <- self$sic_threshold
+    if (is.null(threshold_type)) threshold_type <- if (!is.null(self$sic_report_threshold_type)) self$sic_report_threshold_type else "phi"
     self$computed_paths <- TRUE
     # sending an input through the network of alpha matrices (0 and 1)
     #and then backpropagating to find active paths
@@ -341,8 +362,12 @@ SICNN_Net <- torch::nn_module(
     alpha_mats <- list()
     
     w_eff_input <- self$layers$children$`0`$weight_mean$detach()
-    phi_input <- w_eff_input^2 / (w_eff_input^2 + epsilon^2)
-    alpha_input <- (phi_input > threshold) * 1
+    if(threshold_type == "abs"){
+      alpha_input <- (torch::torch_abs(w_eff_input) > threshold) * 1
+    } else {
+      phi_input <- w_eff_input^2 / (w_eff_input^2 + epsilon^2)
+      alpha_input <- (phi_input > threshold) * 1
+    }
     alpha_input$requires_grad = TRUE
     alpha_mats <- append(alpha_mats,alpha_input)
     
@@ -353,8 +378,12 @@ SICNN_Net <- torch::nn_module(
       if(j > 1){
         x <- (torch::torch_cat(c(x,x0),dim = 2))
         w_eff <- l$weight_mean$detach()
-        phi <- w_eff^2 / (w_eff^2 + epsilon^2)
-        alpha <- (phi > threshold) * 1
+        if(threshold_type == "abs"){
+          alpha <- (torch::torch_abs(w_eff) > threshold) * 1
+        } else {
+          phi <- w_eff^2 / (w_eff^2 + epsilon^2)
+          alpha <- (phi > threshold) * 1
+        }
         alpha$requires_grad = TRUE
         alpha_mats<- append(alpha_mats,alpha)
         x <- torch::torch_matmul(x, torch::torch_t(alpha))
@@ -363,8 +392,12 @@ SICNN_Net <- torch::nn_module(
     }
     #output layer
     w_eff_out <- self$out_layer$weight_mean$detach()
-    phi_out <- w_eff_out^2 / (w_eff_out^2 + epsilon^2)
-    alpha_out <- ((phi_out > threshold) * 1)$detach()
+    if(threshold_type == "abs"){
+      alpha_out <- ((torch::torch_abs(w_eff_out) > threshold) * 1)$detach()
+    } else {
+      phi_out <- w_eff_out^2 / (w_eff_out^2 + epsilon^2)
+      alpha_out <- ((phi_out > threshold) * 1)$detach()
+    }
     alpha_out$requires_grad = TRUE
     alpha_mats <-append(alpha_mats,alpha_out)
     x_out <- (torch::torch_cat(c(x,x0),dim = 2))
@@ -403,7 +436,8 @@ SICNN_Net <- torch::nn_module(
   
   
   density_active_path = function(){
-    return(self$sic_density_active_path(self$sic_epsilon_T, self$sic_threshold))
+    thr_t <- if(!is.null(self$sic_report_threshold_type)) self$sic_report_threshold_type else "phi"
+    return(self$sic_density_active_path(self$sic_epsilon_T, self$sic_threshold, thr_t))
   }
   
 )

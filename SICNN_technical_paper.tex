@@ -61,7 +61,40 @@ Two key user-tunable parameters control the sparsity behavior:
 \textbf{SIC threshold ($\tau$).} A weight $w_k$ is deemed ``active'' if $\phi_\epsilon(w_k) > \tau$. This threshold controls \emph{sparse inference}: when predicting with the pruned model (\texttt{sparse=TRUE}), weights with $\phi_\epsilon(w_k) \le \tau$ are zeroed out. Setting $\tau$ close to 0 (e.g., $10^{-4}$) retains weights that are small but useful, improving sparse-model accuracy. Setting $\tau = 0.5$ produces a sharper binary partition.
 
 \section{Experimental Results}
-The SICNN architecture is validated on three benchmarks: (i) a synthetic linear regression with 3 true and 12 noise covariates ($n=100$, $p=15$), (ii) a synthetic nonlinear classification ($n=1000$, $p=15$), and (iii) the Gallstone binary classification dataset ($n=223$, $p=40$). In the linear experiment with default $\lambda = \log(n)$, SICNN achieves $\sim$67\% sparsity while maintaining low predictive error, correctly recovering the true 3-variable data-generating structure. For classification tasks, a stronger penalty ($\lambda = 2\log(n)$) encourages the SIC regularizer to overcome the larger data-loss scale, progressively pruning weights that do not contribute to the decision boundary.
+The SICNN architecture is validated on three distinct benchmarks: (i) a synthetic linear regression, (ii) a synthetic nonlinear classification, and (iii) the Gallstone binary classification dataset.
+
+\subsection{Linear Regression (Tutorial 1)}
+We simulated $n=1000$ points with $p=15$ covariates, where only 3 features natively contribute to the target $y$. The data generating process consists of strictly linear combinations plus Gaussian noise. A SICNN model with two hidden layers of 5 neurons was optimized over 2000 epochs using a tuned $\epsilon$-telescope decaying precisely to $10^{-5}$ alongside a threshold condition of $|w| > 10^{-5}$.
+The model robustly achieved \textbf{$\sim94.3\%$ sparsity}, completely dropping all 12 noise covariates from the active pathways. Validating against the simulated effects, the network perfectly encapsulated the structural coefficients for $x_1, x_2,$ and $x_3$, bypassing the non-linear hidden nodes natively using input-skip pathways. The test validation $R^2$ was tightly consistent with the noise variance.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.6\textwidth]{figures/tut1_local.pdf}
+    \caption{Local explanation pathways generated for a single prediction in the linear regression setting. Irrelevant variables have identically zero topological flow.}
+    \label{fig:tut1_local}
+\end{figure}
+
+\subsection{Non-linear Classification (Tutorial 2)}
+To aggressively test the capacity of SICNN to detect nested and functional interactions, we used a dataset of $n=1000$ points generated from non-linear combinations (logarithms, cosines, and interaction terms) on a core subset of 6 active features out of 15. The labels were dichotomized at the median value. 
+Training a $(15, 5, 5, 1)$ network with Smooth BIC regularization ($\lambda = \log(n)$) effectively navigated the larger data-loss scales intrinsic to the BCE loss. The optimized sparse network reached an \textbf{accuracy of $85\%$ using only $\sim20\%$ of the initial weights (almost 80\% sparsity)}. The architecture organically disconnected the 9 uninformative features entirely, while wiring intricate latent activation loops between the 6 functional non-linear predictors.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/tut2_global.pdf}
+    \caption{Global structure of the SICNN trained on non-linear classification. The network exhibits pronounced sparse connectivity focused rigidly on the variables embedded in the non-linear sub-functions.}
+    \label{fig:tut2_global}
+\end{figure}
+
+\subsection{Gallstone Propensity Dataset (Tutorial 3)}
+To validate on clinical real-world distributions, SICNN was utilized to predict the presence of gallstones over a curated dataset of $n=223$ patients bearing $p=40$ standardized clinical, physical, and demographic features.
+A topology of $(40, 3, 3, 1)$ combined with an exponentially stepped learning rate successfully stabilized training. The algorithm attained \textbf{$\sim 78.1\%$ validation accuracy} over $1500$ epochs while enforcing staggering penalization, operating on just \textbf{32 active parameters out of 132 (75.7\% sparsity)}. This distills a fundamentally dense predictive neural net into an exceedingly interpretable graph of dominant medical feature weights bridging into the final probabilistic diagnosis. 
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.7\textwidth]{figures/tut3_global.pdf}
+    \caption{Macroscopic pathways mapping clinical patient properties to the probability of gallstone detection. Structural edges visibly trace through bottleneck nodes filtering redundant medical data.}
+    \label{fig:tut3_global}
+\end{figure}
 
 
 \end{document}
