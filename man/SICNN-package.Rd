@@ -4,17 +4,16 @@
 \name{SICNN-package}
 \alias{SICNN}
 \alias{SICNN-package}
-\title{SICNN: Latent Binary Bayesian Neural Networks Using 'torch'}
+\title{SICNN: Smooth Information Criterion Neural Networks Using 'torch'}
 \description{
-Latent binary Bayesian neural networks (SICNNs) are implemented using 'torch', an R interface to the LibTorch backend. Supports mean-field variational inference as well as flexible variational posteriors using normalizing flows. The standard SICNN implementation follows Hubin and Storvik (2024) \doi{10.3390/math12060788}, using the local reparametrization trick as in Skaaret-Lund et al. (2024) \url{https://openreview.net/pdf?id=d6kqUKzG3V}. Input-skip connections are also supported, as described in Høyheim et al. (2025) \doi{10.48550/arXiv.2503.10496}.
+Smooth Information Criterion Neural Networks (SICNNs) are implemented using 'torch', an R interface to the LibTorch backend. SICNNs provide a scalable and continuous approach to parameter pruning by leveraging a smooth approximation of the L0 norm (SIC), as described in O'Neill and Burke (2023) \doi{10.48550/arXiv.2212.12644}. The architecture supports deep structures with input-skip connections to facilitate feature selection in high-dimensional settings.
 }
 \author{
-\strong{Maintainer}: Lars Skaaret-Lund \email{lars.skaaret-lund@nmbu.no}
+\strong{Maintainer}: Aliaksandr Hubin \email{aliaksandr.hubin@nmbu.no}
 
 Authors:
 \itemize{
-  \item Aliaksandr Hubin \email{aliaksandr.hubin@nmbu.no}
-  \item Eirik Høyheim \email{eirik.hoyheim@ffi.no}
+  \item Andrew McInerney \email{andrew.mcinerney@ul.ie}
 }
 
 }

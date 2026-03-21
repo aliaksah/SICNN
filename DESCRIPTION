@@ -1,15 +1,17 @@
 Package: SICNN
-Title: Latent Binary Bayesian Neural Networks Using 'torch'
+Title: Smooth Information Criterion Neural Networks Using 'torch'
 Version: 0.1.2
-Authors@R: c(person("Lars", "Skaaret-Lund", email = "lars.skaaret-lund@nmbu.no", role = c("aut", "cre")), person("Aliaksandr", "Hubin", email = "aliaksandr.hubin@nmbu.no", role = c("aut")), person("Eirik", "Høyheim", email = "eirik.hoyheim@ffi.no", role = "aut"))
-Maintainer: Lars Skaaret-Lund <lars.skaaret-lund@nmbu.no>
-Description: Latent binary Bayesian neural networks (SICNNs) are implemented using 
-    'torch', an R interface to the LibTorch backend. Supports mean-field variational 
-    inference as well as flexible variational posteriors using normalizing flows. 
-    The standard SICNN implementation follows Hubin and Storvik (2024) <doi:10.3390/math12060788>, 
-    using the local reparametrization trick as in Skaaret-Lund et al. (2024) 
-    <https://openreview.net/pdf?id=d6kqUKzG3V>. Input-skip connections are also supported, 
-    as described in Høyheim et al. (2025) <doi:10.48550/arXiv.2503.10496>.
+Authors@R: c(
+    person("Aliaksandr", "Hubin", email = "aliaksandr.hubin@nmbu.no", role = c("aut", "cre")),
+    person("Andrew", "McInerney", email = "andrew.mcinerney@ul.ie", role = "aut")
+    )
+Description: Smooth Information Criterion Neural Networks (SICNNs) are implemented 
+    using 'torch', an R interface to the LibTorch backend. SICNNs provide a 
+    scalable and continuous approach to parameter pruning by leveraging a smooth 
+    approximation of the L0 norm (SIC), as described in O'Neill and Burke (2023) 
+    <doi:10.48550/arXiv.2212.12644>. The architecture supports deep structures 
+    with input-skip connections to facilitate feature selection in high-dimensional 
+    settings.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
