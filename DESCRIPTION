@@ -8,7 +8,9 @@ Authors@R: c(
 Description: Smooth Information Criterion Neural Networks (SICNNs) are implemented 
     using 'torch', an R interface to the LibTorch backend. Developed as an 
     evolution of Latent Binary Bayesian Neural Networks (LBBNNs) described 
-    in Hubin and Storvik (2024) <doi:10.3390/math12060788>, SICNNs provide a 
+    in Hubin and Storvik (2024) <doi:10.3390/math12060788> and implemented 
+    in the 'LBBNN' R package <https://CRAN.R-project.org/package=LBBNN>, 
+    SICNNs provide a 
     scalable and continuous approach to parameter pruning by leveraging a smooth 
     approximation of the L0 norm (SIC), as described in O'Neill and Burke (2023) 
     <doi:10.48550/arXiv.2212.12644>. The architecture supports deep structures 
