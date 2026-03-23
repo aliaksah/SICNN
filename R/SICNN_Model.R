@@ -237,13 +237,18 @@ SICNN_Net <- torch::nn_module(
   },
 
   # Counts active/removed edges under SIC.
-  sic_weight_counts = function(epsilon, threshold = 0.5, threshold_type = "phi"){
+  sic_weight_counts = function(epsilon, threshold = 0.5, threshold_type = "phi", active_paths = FALSE){
     if(missing(epsilon) || !is.numeric(epsilon) || length(epsilon) != 1 || epsilon <= 0){
       stop("epsilon must be a positive numeric scalar")
     }
     if(!is.numeric(threshold) || length(threshold) != 1 || threshold <= 0){
       stop("threshold must be a positive numeric scalar")
     }
+    
+    if(active_paths && self$computed_paths == FALSE){
+      if(self$input_skip){self$compute_paths_input_skip()} else {self$compute_paths()}
+    }
+
     phi_active <- function(w_eff){
       if(threshold_type == "abs"){
         torch::torch_abs(w_eff) > threshold
@@ -256,16 +261,23 @@ SICNN_Net <- torch::nn_module(
     tot <- torch::torch_tensor(0, dtype = torch::torch_float32(), device = self$device)
     for(l in self$layers$children){
       w_eff <- l$weight_mean
-      m <- phi_active(w_eff)
-      num_incl <- num_incl + torch::torch_sum(m$to(torch::torch_float32()))
-      tot <- tot + m$numel()
+      m01 <- phi_active(w_eff)
+      if(active_paths){
+        m01 <- m01 & (l$alpha_active_path > 0)
+      }
+      num_incl <- num_incl + torch::torch_sum(m01$to(torch::torch_float32()))
+      tot <- tot + m01$numel()
     }
     w_eff_out <- self$out_layer$weight_mean
-    m_out <- phi_active(w_eff_out)
-    num_incl <- num_incl + torch::torch_sum(m_out$to(torch::torch_float32()))
-    tot <- tot + m_out$numel()
-    active <- num_incl$item()
-    total <- tot$item()
+    m_out01 <- phi_active(w_eff_out)
+    if(active_paths){
+      m_out01 <- m_out01 & (self$out_layer$alpha_active_path > 0)
+    }
+    num_incl <- num_incl + torch::torch_sum(m_out01$to(torch::torch_float32()))
+    tot <- tot + m_out01$numel()
+    
+    active <- as.numeric(num_incl$item())
+    total <- as.numeric(tot$item())
     removed <- total - active
     return(c(active = active, total = total, removed = removed))
   },

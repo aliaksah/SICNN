@@ -196,15 +196,27 @@ train_SICNN <- function(epochs,
       # BCE/NLL with reduction='sum' gives -ℓ            (nll_scale = 2)
       # Mini-batch covers batch_n < n samples, so scale to full-sample level.
       batch_n <- dim(data)[1]
-      nll_scale <- if (SICNN$problem_type == 'regression') 1 else 2
-      data_loss_scaled <- (n_train / batch_n) * nll_scale * data_loss
+      if (SICNN$problem_type == 'regression') {
+        # Gaussian log-lik with estimated variance as in linear regression BIC:
+        # -2ℓ \approx n*log(RSS/n) = n*log(MSE)
+        mse_est <- data_loss / batch_n
+        # add tiny epsilon to log to prevent negative infinity
+        data_loss_scaled <- n_train * torch::torch_log(mse_est + 1e-12)
+      } else {
+        # For logistic/multiclass, loss is already -loglik (per-sample if reduction='mean', but here it's 'sum').
+        # Scaling sum-loss from batch to n_train:
+        data_loss_scaled <- (n_train / batch_n) * data_loss
+      }
       
       k_smooth <- SICNN$smooth_param_count(epsilon)
       loss <- data_loss_scaled + sic_penalty * k_smooth
       
-      # Reporting loss: same scaling but evaluated at final epsilon_T
-      k_smooth_T <- SICNN$smooth_param_count(SICNN$sic_epsilon_T)
-      loss_report <- (n_train / batch_n) * nll_scale * data_loss$item() + sic_penalty * k_smooth_T$item()
+      # Reporting loss: same logic but evaluated at final epsilon_T
+      if (SICNN$problem_type == 'regression') {
+        loss_report <- n_train * (torch::torch_log(data_loss / batch_n + 1e-12)$item()) + sic_penalty * SICNN$smooth_param_count(SICNN$sic_epsilon_T)$item()
+      } else {
+        loss_report <- (n_train / batch_n) * data_loss$item() + sic_penalty * SICNN$smooth_param_count(SICNN$sic_epsilon_T)$item()
+      }
     
       
       if(SICNN$problem_type == 'multiclass classification' | SICNN$problem_type == 'MNIST'){
@@ -249,7 +261,7 @@ train_SICNN <- function(epochs,
   
     train_acc <- corrects / totals
     if(SICNN$problem_type != 'regression'){
-      sic_counts <- SICNN$sic_weight_counts(epsilon = epsilon_report, threshold = sic_threshold, threshold_type = sic_threshold_type)
+      sic_counts <- SICNN$sic_weight_counts(epsilon = epsilon_report, threshold = sic_threshold, threshold_type = sic_threshold_type, active_paths = (epoch == epochs))
       density_val <- as.numeric(sic_counts["active"] / sic_counts["total"])
       sparsity_val <- as.numeric(sic_counts["removed"] / sic_counts["total"]) * 100
       message(sprintf(
@@ -264,7 +276,7 @@ train_SICNN <- function(epochs,
     if(SICNN$problem_type == 'regression'){
       ss_tot <- sum_y_sq - (sum_y^2) / max(1, totals)
       r2 <- if (ss_tot > 0) 1 - (ss_res / ss_tot) else 0
-      sic_counts <- SICNN$sic_weight_counts(epsilon = epsilon_report, threshold = sic_threshold, threshold_type = sic_threshold_type)
+      sic_counts <- SICNN$sic_weight_counts(epsilon = epsilon_report, threshold = sic_threshold, threshold_type = sic_threshold_type, active_paths = (epoch == epochs))
       density_val <- as.numeric(sic_counts["active"] / sic_counts["total"])
       sparsity_val <- as.numeric(sic_counts["removed"] / sic_counts["total"]) * 100
       message(sprintf(
@@ -275,7 +287,7 @@ train_SICNN <- function(epochs,
       losses <- c(losses,mean(train_loss))
       accs <- c(accs, r2)
     }
-    sic_counts <- SICNN$sic_weight_counts(epsilon = epsilon_report, threshold = sic_threshold, threshold_type = sic_threshold_type)
+    sic_counts <- SICNN$sic_weight_counts(epsilon = epsilon_report, threshold = sic_threshold, threshold_type = sic_threshold_type, active_paths = (epoch == epochs))
     active_weights <- c(active_weights, as.numeric(sic_counts["active"]))
     total_weights <- c(total_weights, as.numeric(sic_counts["total"]))
     removed_weights <- c(removed_weights, as.numeric(sic_counts["removed"]))

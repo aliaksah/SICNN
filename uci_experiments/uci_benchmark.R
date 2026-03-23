@@ -42,25 +42,27 @@ prepare_uci_data <- function(name) {
     target_type <- "regression"
   } else if (name == "Yacht") {
     df <- read.table("uci_experiments/yacht.data", header=FALSE)
+    df[[ncol(df)]] <- log1p(df[[ncol(df)]]) # Apply log1p to the target column
     target_type <- "regression"
   } else if (name == "Concrete") {
     df <- read.csv("uci_experiments/concrete_slump.csv", header=TRUE)
     df <- df[, 2:9] # Features 2:8, Target SLUMP at 9 (relative to original 1:11)
     target_type <- "regression"
-  } else if (name == "Housing") {
-    if (requireNamespace("mlbench", quietly = TRUE)) {
-      data("BostonHousing", package = "mlbench")
-      df <- mlbench::BostonHousing
-      df$chas <- as.numeric(df$chas) - 1
-      target_type <- "regression"
-    } else {
-      return(NULL)
-    }
+  } else if (name == "Boston") {
+    data(Boston, package = "MASS")
+    df <- Boston
+    target_type <- "regression"
+  } else if (name == "Abalone") {
+    df <- read.table("uci_experiments/abalone.data", sep=",", header=FALSE)
+    # One-hot encode Sex
+    sex_dummies <- model.matrix(~ V1 - 1, data=df)
+    df <- cbind(sex_dummies, df[, 2:9])
+    target_type <- "regression"
   }
   return(list(df=df, target_type=target_type))
 }
 
-run_experiment <- function(dataset_name, lr=0.01, penalty_mult=5, epochs=1000) {
+run_experiment <- function(dataset_name, lr=0.01, penalty_mult=5, epochs=2000) {
   set.seed(42)
   cat(paste("\n--- Processing", dataset_name, "---"))
   data_obj <- tryCatch(prepare_uci_data(dataset_name), error=function(e) NULL)
@@ -114,9 +116,9 @@ run_experiment <- function(dataset_name, lr=0.01, penalty_mult=5, epochs=1000) {
   p <- ncol(features)
   if (type == "multiclass classification") {
     out_dim <- length(unique(target))
-    sizes <- c(p, 10, 5, out_dim)
+    sizes <- c(p, 100, 50, 20, out_dim)
   } else {
-    sizes <- c(p, 10, 5, 1)
+    sizes <- c(p, 100, 50, 20, 1)
   }
   
   model <- SICNN_Net(problem_type = type, sizes = sizes, input_skip = TRUE, device = "cpu")
@@ -195,7 +197,7 @@ run_experiment <- function(dataset_name, lr=0.01, penalty_mult=5, epochs=1000) {
 }
 
 args <- commandArgs(trailingOnly=TRUE)
-datasets <- c("Pima", "Sonar", "BreastCancer", "Wine", "Airfoil", "Yacht", "Concrete")
+datasets <- c("Pima", "Sonar", "BreastCancer", "Wine", "Airfoil", "Yacht", "Concrete", "Abalone", "Boston")
 
 if (length(args) > 0) {
   target_datasets <- args
@@ -208,11 +210,13 @@ for (d in target_datasets) {
   p_mult <- switch(d,
     "Pima" = 0.5,
     "Sonar" = 1.0,
-    "BreastCancer" = 5.0,
-    "Wine" = 1.0,
+    "BreastCancer" = 0.5,
+    "Wine" = 0.1,
     "Airfoil" = 0.1,
-    "Yacht" = 0.1,
+    "Yacht" = 0.005,
     "Concrete" = 0.1,
+    "Abalone" = 0.01,
+    "Boston" = 0.01,
     5.0
   )
   res <- tryCatch(run_experiment(d, penalty_mult = p_mult), error=function(e) { message(paste("Experiment failed for", d, ":", e$message)); NULL })

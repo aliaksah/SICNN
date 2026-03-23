@@ -162,6 +162,12 @@ summary.SICNN_Net <- function(object,
     cat("-----------------------------------\n")
     print(summary_out)
     cat(paste('The model took',object$elapsed_time,'seconds to train, using',object$device))
+    
+    # Global SIC weight count (active on active paths)
+    glob_counts <- object$sic_weight_counts(epsilon = epsilon, threshold = threshold, active_paths = TRUE)
+    cat(sprintf("\nGlobal SIC Sparsity (Active Paths): %.2f%% (%d / %d active weights)\n", 
+                (glob_counts["removed"] / glob_counts["total"]) * 100,
+                as.integer(glob_counts["active"]), as.integer(glob_counts["total"])))
     invisible(summary_out)
 }
 
