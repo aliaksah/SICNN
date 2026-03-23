@@ -5041,3 +5041,2031 @@ Epoch 343, training: loss = 13.64207, R2 = 0.96318, density = 0.04471, sparsity 
 
 Epoch 344, training: loss = 10.86351, R2 = 0.96104, density = 0.05606, sparsity = 94.39% 
 
+
+Epoch 345, training: loss = 15.17242, R2 = 0.96225, density = 0.06230, sparsity = 93.77% 
+
+
+Epoch 346, training: loss = 14.49545, R2 = 0.96094, density = 0.05393, sparsity = 94.61% 
+
+
+Epoch 347, training: loss = 14.04710, R2 = 0.96169, density = 0.06160, sparsity = 93.84% 
+
+
+Epoch 348, training: loss = 12.78619, R2 = 0.96304, density = 0.04116, sparsity = 95.88% 
+
+
+Epoch 349, training: loss = 9.27732, R2 = 0.96328, density = 0.02853, sparsity = 97.15% 
+
+
+Epoch 350, training: loss = 6.94715, R2 = 0.96340, density = 0.02313, sparsity = 97.69% 
+
+
+Epoch 351, training: loss = 6.28712, R2 = 0.96369, density = 0.01888, sparsity = 98.11% 
+
+
+Epoch 352, training: loss = 7.12765, R2 = 0.96301, density = 0.02611, sparsity = 97.39% 
+
+
+Epoch 353, training: loss = 8.29907, R2 = 0.96114, density = 0.03903, sparsity = 96.10% 
+
+
+Epoch 354, training: loss = 11.41827, R2 = 0.96349, density = 0.03804, sparsity = 96.20% 
+
+
+Epoch 355, training: loss = 8.85665, R2 = 0.96299, density = 0.02469, sparsity = 97.53% 
+
+
+Epoch 356, training: loss = 6.29446, R2 = 0.96357, density = 0.01760, sparsity = 98.24% 
+
+
+Epoch 357, training: loss = 5.39161, R2 = 0.96132, density = 0.02228, sparsity = 97.77% 
+
+
+Epoch 358, training: loss = 10.21469, R2 = 0.96165, density = 0.04655, sparsity = 95.34% 
+
+
+Epoch 359, training: loss = 11.86594, R2 = 0.96366, density = 0.03875, sparsity = 96.13% 
+
+
+Epoch 360, training: loss = 9.10654, R2 = 0.96240, density = 0.02952, sparsity = 97.05% 
+
+
+Epoch 361, training: loss = 7.06848, R2 = 0.96295, density = 0.01987, sparsity = 98.01% 
+
+
+Epoch 362, training: loss = 5.72245, R2 = 0.96324, density = 0.01930, sparsity = 98.07% 
+
+
+Epoch 363, training: loss = 5.63594, R2 = 0.96304, density = 0.01448, sparsity = 98.55% 
+
+
+Epoch 364, training: loss = 4.46374, R2 = 0.96342, density = 0.01391, sparsity = 98.61% 
+
+
+Epoch 365, training: loss = 4.10429, R2 = 0.96293, density = 0.01377, sparsity = 98.62% 
+
+
+Epoch 366, training: loss = 5.05897, R2 = 0.96292, density = 0.01661, sparsity = 98.34% 
+
+
+Epoch 367, training: loss = 5.30271, R2 = 0.96398, density = 0.01448, sparsity = 98.55% 
+
+
+Epoch 368, training: loss = 4.13343, R2 = 0.96363, density = 0.01263, sparsity = 98.74% 
+
+
+Epoch 369, training: loss = 3.83176, R2 = 0.96326, density = 0.01249, sparsity = 98.75% 
+
+
+Epoch 370, training: loss = 3.78860, R2 = 0.96325, density = 0.01107, sparsity = 98.89% 
+
+
+Epoch 371, training: loss = 3.38211, R2 = 0.96361, density = 0.00993, sparsity = 99.01% 
+
+
+Epoch 372, training: loss = 3.17407, R2 = 0.96367, density = 0.00965, sparsity = 99.03% 
+
+
+Epoch 373, training: loss = 3.15156, R2 = 0.96321, density = 0.00951, sparsity = 99.05% 
+
+
+Epoch 374, training: loss = 3.48727, R2 = 0.96351, density = 0.00993, sparsity = 99.01% 
+
+
+Epoch 375, training: loss = 3.38341, R2 = 0.96307, density = 0.01022, sparsity = 98.98% 
+
+
+Epoch 376, training: loss = 3.35212, R2 = 0.96388, density = 0.01093, sparsity = 98.91% 
+
+
+Epoch 377, training: loss = 3.58237, R2 = 0.96265, density = 0.01192, sparsity = 98.81% 
+
+
+Epoch 378, training: loss = 4.48077, R2 = 0.96229, density = 0.01575, sparsity = 98.42% 
+
+
+Epoch 379, training: loss = 5.43421, R2 = 0.96240, density = 0.01802, sparsity = 98.20% 
+
+
+Epoch 380, training: loss = 6.64216, R2 = 0.96278, density = 0.01987, sparsity = 98.01% 
+
+
+Epoch 381, training: loss = 6.37802, R2 = 0.96206, density = 0.02001, sparsity = 98.00% 
+
+
+Epoch 382, training: loss = 10.57993, R2 = 0.95894, density = 0.05947, sparsity = 94.05% 
+
+
+Epoch 383, training: loss = 14.62431, R2 = 0.96109, density = 0.05720, sparsity = 94.28% 
+
+
+Epoch 384, training: loss = 11.52134, R2 = 0.96308, density = 0.03477, sparsity = 96.52% 
+
+
+Epoch 385, training: loss = 7.24096, R2 = 0.96352, density = 0.02171, sparsity = 97.83% 
+
+
+Epoch 386, training: loss = 5.71440, R2 = 0.96011, density = 0.02214, sparsity = 97.79% 
+
+
+Epoch 387, training: loss = 7.96906, R2 = 0.96233, density = 0.03066, sparsity = 96.93% 
+
+
+Epoch 388, training: loss = 9.30896, R2 = 0.96166, density = 0.03207, sparsity = 96.79% 
+
+
+Epoch 389, training: loss = 7.23646, R2 = 0.96350, density = 0.01788, sparsity = 98.21% 
+
+
+Epoch 390, training: loss = 4.77718, R2 = 0.96353, density = 0.01348, sparsity = 98.65% 
+
+
+Epoch 391, training: loss = 3.75976, R2 = 0.96331, density = 0.01093, sparsity = 98.91% 
+
+
+Epoch 392, training: loss = 4.05589, R2 = 0.96108, density = 0.01448, sparsity = 98.55% 
+
+
+Epoch 393, training: loss = 5.54822, R2 = 0.96206, density = 0.01731, sparsity = 98.27% 
+
+
+Epoch 394, training: loss = 5.46965, R2 = 0.96349, density = 0.01462, sparsity = 98.54% 
+
+
+Epoch 395, training: loss = 3.99163, R2 = 0.96373, density = 0.01178, sparsity = 98.82% 
+
+
+Epoch 396, training: loss = 3.60154, R2 = 0.96175, density = 0.01419, sparsity = 98.58% 
+
+
+Epoch 397, training: loss = 5.82725, R2 = 0.96165, density = 0.02086, sparsity = 97.91% 
+
+
+Epoch 398, training: loss = 6.42989, R2 = 0.96312, density = 0.01774, sparsity = 98.23% 
+
+
+Epoch 399, training: loss = 4.87356, R2 = 0.96288, density = 0.01476, sparsity = 98.52% 
+
+
+Epoch 400, training: loss = 4.67880, R2 = 0.96248, density = 0.01689, sparsity = 98.31% 
+
+
+Epoch 401, training: loss = 5.54708, R2 = 0.96283, density = 0.01604, sparsity = 98.40% 
+
+
+Epoch 402, training: loss = 4.50740, R2 = 0.96382, density = 0.01334, sparsity = 98.67% 
+
+
+Epoch 403, training: loss = 3.69684, R2 = 0.96158, density = 0.01107, sparsity = 98.89% 
+
+
+Epoch 404, training: loss = 5.45179, R2 = 0.96101, density = 0.02171, sparsity = 97.83% 
+
+
+Epoch 405, training: loss = 7.15806, R2 = 0.96269, density = 0.01888, sparsity = 98.11% 
+
+
+Epoch 406, training: loss = 5.69357, R2 = 0.96248, density = 0.01703, sparsity = 98.30% 
+
+
+Epoch 407, training: loss = 4.53367, R2 = 0.96364, density = 0.01221, sparsity = 98.78% 
+
+
+Epoch 408, training: loss = 3.14911, R2 = 0.96356, density = 0.00908, sparsity = 99.09% 
+
+
+Epoch 409, training: loss = 2.74428, R2 = 0.96285, density = 0.00752, sparsity = 99.25% 
+
+
+Epoch 410, training: loss = 2.49055, R2 = 0.96325, density = 0.00766, sparsity = 99.23% 
+
+
+Epoch 411, training: loss = 2.34236, R2 = 0.96355, density = 0.00681, sparsity = 99.32% 
+
+
+Epoch 412, training: loss = 2.28102, R2 = 0.96293, density = 0.00766, sparsity = 99.23% 
+
+
+Epoch 413, training: loss = 2.83701, R2 = 0.96361, density = 0.01022, sparsity = 98.98% 
+
+
+Epoch 414, training: loss = 3.57975, R2 = 0.96003, density = 0.01533, sparsity = 98.47% 
+
+
+Epoch 415, training: loss = 6.44543, R2 = 0.96323, density = 0.01888, sparsity = 98.11% 
+
+
+Epoch 416, training: loss = 5.11665, R2 = 0.96352, density = 0.01292, sparsity = 98.71% 
+
+
+Epoch 417, training: loss = 3.99665, R2 = 0.96205, density = 0.01277, sparsity = 98.72% 
+
+
+Epoch 418, training: loss = 4.97424, R2 = 0.95981, density = 0.01618, sparsity = 98.38% 
+
+
+Epoch 419, training: loss = 5.73536, R2 = 0.96071, density = 0.02001, sparsity = 98.00% 
+
+
+Epoch 420, training: loss = 6.20143, R2 = 0.96062, density = 0.01873, sparsity = 98.13% 
+
+
+Epoch 421, training: loss = 6.88317, R2 = 0.95829, density = 0.02413, sparsity = 97.59% 
+
+
+Epoch 422, training: loss = 6.77431, R2 = 0.96013, density = 0.01973, sparsity = 98.03% 
+
+
+Epoch 423, training: loss = 4.79877, R2 = 0.96386, density = 0.01263, sparsity = 98.74% 
+
+
+Epoch 424, training: loss = 3.23250, R2 = 0.96283, density = 0.00852, sparsity = 99.15% 
+
+
+Epoch 425, training: loss = 2.74836, R2 = 0.96253, density = 0.00752, sparsity = 99.25% 
+
+
+Epoch 426, training: loss = 2.47301, R2 = 0.96309, density = 0.00610, sparsity = 99.39% 
+
+
+Epoch 427, training: loss = 2.38193, R2 = 0.96337, density = 0.00596, sparsity = 99.40% 
+
+
+Epoch 428, training: loss = 2.46884, R2 = 0.96301, density = 0.00823, sparsity = 99.18% 
+
+
+Epoch 429, training: loss = 2.63019, R2 = 0.96270, density = 0.00866, sparsity = 99.13% 
+
+
+Epoch 430, training: loss = 2.69744, R2 = 0.96329, density = 0.00880, sparsity = 99.12% 
+
+
+Epoch 431, training: loss = 2.53232, R2 = 0.96432, density = 0.00795, sparsity = 99.21% 
+
+
+Epoch 432, training: loss = 2.50823, R2 = 0.96233, density = 0.00809, sparsity = 99.19% 
+
+
+Epoch 433, training: loss = 2.58168, R2 = 0.96294, density = 0.00894, sparsity = 99.11% 
+
+
+Epoch 434, training: loss = 2.65986, R2 = 0.96296, density = 0.00823, sparsity = 99.18% 
+
+
+Epoch 435, training: loss = 2.65186, R2 = 0.96345, density = 0.00766, sparsity = 99.23% 
+
+
+Epoch 436, training: loss = 2.46103, R2 = 0.96350, density = 0.00866, sparsity = 99.13% 
+
+
+Epoch 437, training: loss = 2.32458, R2 = 0.96329, density = 0.00695, sparsity = 99.30% 
+
+
+Epoch 438, training: loss = 2.76282, R2 = 0.95963, density = 0.01150, sparsity = 98.85% 
+
+
+Epoch 439, training: loss = 4.14025, R2 = 0.95978, density = 0.01377, sparsity = 98.62% 
+
+
+Epoch 440, training: loss = 3.96024, R2 = 0.96310, density = 0.01121, sparsity = 98.88% 
+
+
+Epoch 441, training: loss = 2.96148, R2 = 0.96339, density = 0.00837, sparsity = 99.16% 
+
+
+Epoch 442, training: loss = 2.53351, R2 = 0.96324, density = 0.00866, sparsity = 99.13% 
+
+
+Epoch 443, training: loss = 2.47571, R2 = 0.96300, density = 0.00809, sparsity = 99.19% 
+
+
+Epoch 444, training: loss = 2.67821, R2 = 0.96249, density = 0.00852, sparsity = 99.15% 
+
+
+Epoch 445, training: loss = 2.79530, R2 = 0.96282, density = 0.00866, sparsity = 99.13% 
+
+
+Epoch 446, training: loss = 3.06003, R2 = 0.96214, density = 0.00993, sparsity = 99.01% 
+
+
+Epoch 447, training: loss = 3.42485, R2 = 0.96001, density = 0.01206, sparsity = 98.79% 
+
+
+Epoch 448, training: loss = 3.39866, R2 = 0.96213, density = 0.01079, sparsity = 98.92% 
+
+
+Epoch 449, training: loss = 2.92191, R2 = 0.96266, density = 0.00993, sparsity = 99.01% 
+
+
+Epoch 450, training: loss = 2.75771, R2 = 0.96205, density = 0.00752, sparsity = 99.25% 
+
+
+Epoch 451, training: loss = 2.50401, R2 = 0.96326, density = 0.00766, sparsity = 99.23% 
+
+
+Epoch 452, training: loss = 2.44156, R2 = 0.96253, density = 0.00880, sparsity = 99.12% 
+
+
+Epoch 453, training: loss = 2.73822, R2 = 0.96227, density = 0.00965, sparsity = 99.03% 
+
+
+Epoch 454, training: loss = 2.96334, R2 = 0.96196, density = 0.00965, sparsity = 99.03% 
+
+
+Epoch 455, training: loss = 2.77694, R2 = 0.96297, density = 0.00837, sparsity = 99.16% 
+
+
+Epoch 456, training: loss = 2.50588, R2 = 0.96233, density = 0.00766, sparsity = 99.23% 
+
+
+Epoch 457, training: loss = 2.40203, R2 = 0.96343, density = 0.00852, sparsity = 99.15% 
+
+
+Epoch 458, training: loss = 2.54299, R2 = 0.96244, density = 0.00880, sparsity = 99.12% 
+
+
+Epoch 459, training: loss = 2.49013, R2 = 0.96377, density = 0.00766, sparsity = 99.23% 
+
+
+Epoch 460, training: loss = 2.29855, R2 = 0.96379, density = 0.00766, sparsity = 99.23% 
+
+
+Epoch 461, training: loss = 2.41908, R2 = 0.96059, density = 0.00923, sparsity = 99.08% 
+
+
+Epoch 462, training: loss = 2.83725, R2 = 0.96059, density = 0.01064, sparsity = 98.94% 
+
+
+Epoch 463, training: loss = 2.97974, R2 = 0.96264, density = 0.00837, sparsity = 99.16% 
+
+
+Epoch 464, training: loss = 2.39804, R2 = 0.96390, density = 0.00681, sparsity = 99.32% 
+
+
+Epoch 465, training: loss = 2.14821, R2 = 0.96377, density = 0.00554, sparsity = 99.45% 
+
+
+Epoch 466, training: loss = 2.03730, R2 = 0.96256, density = 0.00454, sparsity = 99.55% 
+
+
+Epoch 467, training: loss = 1.97744, R2 = 0.96376, density = 0.00639, sparsity = 99.36% 
+
+
+Epoch 468, training: loss = 2.06253, R2 = 0.96337, density = 0.00525, sparsity = 99.47% 
+
+
+Epoch 469, training: loss = 1.99355, R2 = 0.96294, density = 0.00866, sparsity = 99.13% 
+
+
+Epoch 470, training: loss = 2.87107, R2 = 0.96023, density = 0.01178, sparsity = 98.82% 
+
+
+Epoch 471, training: loss = 3.54207, R2 = 0.95703, density = 0.01221, sparsity = 98.78% 
+
+
+Epoch 472, training: loss = 3.37827, R2 = 0.96006, density = 0.01079, sparsity = 98.92% 
+
+
+Epoch 473, training: loss = 3.10961, R2 = 0.95927, density = 0.01022, sparsity = 98.98% 
+
+
+Epoch 474, training: loss = 3.01976, R2 = 0.96017, density = 0.00993, sparsity = 99.01% 
+
+
+Epoch 475, training: loss = 2.78146, R2 = 0.96189, density = 0.00908, sparsity = 99.09% 
+
+
+Epoch 476, training: loss = 2.78927, R2 = 0.96188, density = 0.00923, sparsity = 99.08% 
+
+
+Epoch 477, training: loss = 2.74951, R2 = 0.95994, density = 0.00951, sparsity = 99.05% 
+
+
+Epoch 478, training: loss = 2.76727, R2 = 0.96074, density = 0.00923, sparsity = 99.08% 
+
+
+Epoch 479, training: loss = 2.54492, R2 = 0.96292, density = 0.00781, sparsity = 99.22% 
+
+
+Epoch 480, training: loss = 2.20004, R2 = 0.96334, density = 0.00639, sparsity = 99.36% 
+
+
+Epoch 481, training: loss = 1.95982, R2 = 0.96339, density = 0.00596, sparsity = 99.40% 
+
+
+Epoch 482, training: loss = 1.75284, R2 = 0.96354, density = 0.00440, sparsity = 99.56% 
+
+
+Epoch 483, training: loss = 2.03127, R2 = 0.96190, density = 0.00738, sparsity = 99.26% 
+
+
+Epoch 484, training: loss = 2.28404, R2 = 0.96230, density = 0.00795, sparsity = 99.21% 
+
+
+Epoch 485, training: loss = 2.59398, R2 = 0.95902, density = 0.00951, sparsity = 99.05% 
+
+
+Epoch 486, training: loss = 2.83784, R2 = 0.96302, density = 0.00951, sparsity = 99.05% 
+
+
+Epoch 487, training: loss = 2.51395, R2 = 0.96123, density = 0.00695, sparsity = 99.30% 
+
+
+Epoch 488, training: loss = 2.17562, R2 = 0.96248, density = 0.00667, sparsity = 99.33% 
+
+
+Epoch 489, training: loss = 2.07277, R2 = 0.96365, density = 0.00539, sparsity = 99.46% 
+
+
+Epoch 490, training: loss = 1.77804, R2 = 0.96353, density = 0.00426, sparsity = 99.57% 
+
+
+Epoch 491, training: loss = 1.64917, R2 = 0.96333, density = 0.00397, sparsity = 99.60% 
+
+
+Epoch 492, training: loss = 1.60380, R2 = 0.96348, density = 0.00483, sparsity = 99.52% 
+
+
+Epoch 493, training: loss = 1.94019, R2 = 0.96217, density = 0.00681, sparsity = 99.32% 
+
+
+Epoch 494, training: loss = 2.22892, R2 = 0.96263, density = 0.00766, sparsity = 99.23% 
+
+
+Epoch 495, training: loss = 2.30412, R2 = 0.96326, density = 0.00653, sparsity = 99.35% 
+
+
+Epoch 496, training: loss = 2.09489, R2 = 0.96315, density = 0.00653, sparsity = 99.35% 
+
+
+Epoch 497, training: loss = 2.12448, R2 = 0.96257, density = 0.00624, sparsity = 99.38% 
+
+
+Epoch 498, training: loss = 2.21761, R2 = 0.96335, density = 0.00596, sparsity = 99.40% 
+
+
+Epoch 499, training: loss = 2.01387, R2 = 0.96357, density = 0.00596, sparsity = 99.40% 
+
+
+Epoch 500, training: loss = 1.75783, R2 = 0.96375, density = 0.00383, sparsity = 99.62% 
+
+
+Epoch 501, training: loss = 1.49874, R2 = 0.96388, density = 0.00326, sparsity = 99.67% 
+
+
+Epoch 502, training: loss = 1.45145, R2 = 0.96343, density = 0.00241, sparsity = 99.76% 
+
+
+Epoch 503, training: loss = 1.55355, R2 = 0.96356, density = 0.00412, sparsity = 99.59% 
+
+
+Epoch 504, training: loss = 2.00843, R2 = 0.96219, density = 0.00710, sparsity = 99.29% 
+
+
+Epoch 505, training: loss = 2.46382, R2 = 0.96144, density = 0.00823, sparsity = 99.18% 
+
+
+Epoch 506, training: loss = 2.36169, R2 = 0.96359, density = 0.00738, sparsity = 99.26% 
+
+
+Epoch 507, training: loss = 2.19095, R2 = 0.96281, density = 0.00724, sparsity = 99.28% 
+
+
+Epoch 508, training: loss = 2.13717, R2 = 0.96334, density = 0.00639, sparsity = 99.36% 
+
+
+Epoch 509, training: loss = 2.14534, R2 = 0.96233, density = 0.00681, sparsity = 99.32% 
+
+
+Epoch 510, training: loss = 2.13443, R2 = 0.96358, density = 0.00695, sparsity = 99.30% 
+
+
+Epoch 511, training: loss = 2.09973, R2 = 0.96197, density = 0.00752, sparsity = 99.25% 
+
+
+Epoch 512, training: loss = 2.31880, R2 = 0.96367, density = 0.00781, sparsity = 99.22% 
+
+
+Epoch 513, training: loss = 2.21918, R2 = 0.96358, density = 0.00710, sparsity = 99.29% 
+
+
+Epoch 514, training: loss = 2.02938, R2 = 0.96371, density = 0.00624, sparsity = 99.38% 
+
+
+Epoch 515, training: loss = 1.98450, R2 = 0.96385, density = 0.00610, sparsity = 99.39% 
+
+
+Epoch 516, training: loss = 1.97862, R2 = 0.96342, density = 0.00596, sparsity = 99.40% 
+
+
+Epoch 517, training: loss = 2.14090, R2 = 0.96384, density = 0.00695, sparsity = 99.30% 
+
+
+Epoch 518, training: loss = 2.25102, R2 = 0.96370, density = 0.00766, sparsity = 99.23% 
+
+
+Epoch 519, training: loss = 2.37975, R2 = 0.96234, density = 0.00894, sparsity = 99.11% 
+
+
+Epoch 520, training: loss = 2.50321, R2 = 0.96342, density = 0.00937, sparsity = 99.06% 
+
+
+Epoch 521, training: loss = 2.38655, R2 = 0.96364, density = 0.00738, sparsity = 99.26% 
+
+
+Epoch 522, training: loss = 2.17364, R2 = 0.96294, density = 0.00681, sparsity = 99.32% 
+
+
+Epoch 523, training: loss = 2.54078, R2 = 0.96230, density = 0.00852, sparsity = 99.15% 
+
+
+Epoch 524, training: loss = 2.66396, R2 = 0.96161, density = 0.00951, sparsity = 99.05% 
+
+
+Epoch 525, training: loss = 2.89120, R2 = 0.96202, density = 0.00965, sparsity = 99.03% 
+
+
+Epoch 526, training: loss = 2.72419, R2 = 0.96375, density = 0.01008, sparsity = 98.99% 
+
+
+Epoch 527, training: loss = 2.54316, R2 = 0.96348, density = 0.00781, sparsity = 99.22% 
+
+
+Epoch 528, training: loss = 2.47448, R2 = 0.96134, density = 0.00766, sparsity = 99.23% 
+
+
+Epoch 529, training: loss = 2.87150, R2 = 0.96301, density = 0.01093, sparsity = 98.91% 
+
+
+Epoch 530, training: loss = 2.84974, R2 = 0.96372, density = 0.01121, sparsity = 98.88% 
+
+
+Epoch 531, training: loss = 3.02048, R2 = 0.96100, density = 0.01036, sparsity = 98.96% 
+
+
+Epoch 532, training: loss = 3.02878, R2 = 0.96188, density = 0.01050, sparsity = 98.95% 
+
+
+Epoch 533, training: loss = 3.04636, R2 = 0.96048, density = 0.01064, sparsity = 98.94% 
+
+
+Epoch 534, training: loss = 3.09150, R2 = 0.96309, density = 0.01036, sparsity = 98.96% 
+
+
+Epoch 535, training: loss = 2.82931, R2 = 0.96190, density = 0.01008, sparsity = 98.99% 
+
+
+Epoch 536, training: loss = 2.61811, R2 = 0.96360, density = 0.00894, sparsity = 99.11% 
+
+
+Epoch 537, training: loss = 2.49315, R2 = 0.96268, density = 0.00823, sparsity = 99.18% 
+
+
+Epoch 538, training: loss = 2.43029, R2 = 0.96372, density = 0.00866, sparsity = 99.13% 
+
+
+Epoch 539, training: loss = 2.61828, R2 = 0.96293, density = 0.00979, sparsity = 99.02% 
+
+
+Epoch 540, training: loss = 2.65385, R2 = 0.96371, density = 0.00852, sparsity = 99.15% 
+
+
+Epoch 541, training: loss = 2.51866, R2 = 0.96354, density = 0.00809, sparsity = 99.19% 
+
+
+Epoch 542, training: loss = 2.54442, R2 = 0.96289, density = 0.00979, sparsity = 99.02% 
+
+
+Epoch 543, training: loss = 2.98455, R2 = 0.96325, density = 0.01135, sparsity = 98.86% 
+
+
+Epoch 544, training: loss = 3.02017, R2 = 0.96386, density = 0.01107, sparsity = 98.89% 
+
+
+Epoch 545, training: loss = 3.04131, R2 = 0.96167, density = 0.01391, sparsity = 98.61% 
+
+
+Epoch 546, training: loss = 3.66221, R2 = 0.96128, density = 0.01377, sparsity = 98.62% 
+
+
+Epoch 547, training: loss = 3.48308, R2 = 0.96327, density = 0.01263, sparsity = 98.74% 
+
+
+Epoch 548, training: loss = 3.20789, R2 = 0.96215, density = 0.01121, sparsity = 98.88% 
+
+
+Epoch 549, training: loss = 3.43069, R2 = 0.96173, density = 0.01433, sparsity = 98.57% 
+
+
+Epoch 550, training: loss = 3.68907, R2 = 0.96157, density = 0.01448, sparsity = 98.55% 
+
+
+Epoch 551, training: loss = 3.47045, R2 = 0.96398, density = 0.01263, sparsity = 98.74% 
+
+
+Epoch 552, training: loss = 3.17640, R2 = 0.96299, density = 0.01192, sparsity = 98.81% 
+
+
+Epoch 553, training: loss = 3.34231, R2 = 0.96199, density = 0.01405, sparsity = 98.59% 
+
+
+Epoch 554, training: loss = 3.57580, R2 = 0.96292, density = 0.01320, sparsity = 98.68% 
+
+
+Epoch 555, training: loss = 3.38743, R2 = 0.96383, density = 0.01150, sparsity = 98.85% 
+
+
+Epoch 556, training: loss = 3.21662, R2 = 0.96341, density = 0.01263, sparsity = 98.74% 
+
+
+Epoch 557, training: loss = 3.75927, R2 = 0.95934, density = 0.01590, sparsity = 98.41% 
+
+
+Epoch 558, training: loss = 4.14692, R2 = 0.96131, density = 0.01590, sparsity = 98.41% 
+
+
+Epoch 559, training: loss = 4.03963, R2 = 0.96032, density = 0.01519, sparsity = 98.48% 
+
+
+Epoch 560, training: loss = 3.90169, R2 = 0.95989, density = 0.01575, sparsity = 98.42% 
+
+
+Epoch 561, training: loss = 3.67729, R2 = 0.96353, density = 0.01292, sparsity = 98.71% 
+
+
+Epoch 562, training: loss = 3.50976, R2 = 0.96347, density = 0.01419, sparsity = 98.58% 
+
+
+Epoch 563, training: loss = 3.57437, R2 = 0.96335, density = 0.01306, sparsity = 98.69% 
+
+
+Epoch 564, training: loss = 3.71759, R2 = 0.96235, density = 0.01604, sparsity = 98.40% 
+
+
+Epoch 565, training: loss = 3.98194, R2 = 0.96274, density = 0.01590, sparsity = 98.41% 
+
+
+Epoch 566, training: loss = 4.10204, R2 = 0.95967, density = 0.01561, sparsity = 98.44% 
+
+
+Epoch 567, training: loss = 4.04858, R2 = 0.96239, density = 0.01661, sparsity = 98.34% 
+
+
+Epoch 568, training: loss = 4.14431, R2 = 0.96216, density = 0.01618, sparsity = 98.38% 
+
+
+Epoch 569, training: loss = 4.27835, R2 = 0.96087, density = 0.01802, sparsity = 98.20% 
+
+
+Epoch 570, training: loss = 4.59712, R2 = 0.96143, density = 0.01959, sparsity = 98.04% 
+
+
+Epoch 571, training: loss = 4.69631, R2 = 0.96062, density = 0.02044, sparsity = 97.96% 
+
+
+Epoch 572, training: loss = 4.87739, R2 = 0.96217, density = 0.01916, sparsity = 98.08% 
+
+
+Epoch 573, training: loss = 4.56332, R2 = 0.96342, density = 0.01959, sparsity = 98.04% 
+
+
+Epoch 574, training: loss = 4.70237, R2 = 0.96125, density = 0.02058, sparsity = 97.94% 
+
+
+Epoch 575, training: loss = 5.27553, R2 = 0.96133, density = 0.02299, sparsity = 97.70% 
+
+
+Epoch 576, training: loss = 5.18707, R2 = 0.95980, density = 0.02072, sparsity = 97.93% 
+
+
+Epoch 577, training: loss = 5.23262, R2 = 0.95912, density = 0.02328, sparsity = 97.67% 
+
+
+Epoch 578, training: loss = 5.32360, R2 = 0.95994, density = 0.02015, sparsity = 97.98% 
+
+
+Epoch 579, training: loss = 4.88910, R2 = 0.96161, density = 0.02072, sparsity = 97.93% 
+
+
+Epoch 580, training: loss = 4.69531, R2 = 0.96409, density = 0.01987, sparsity = 98.01% 
+
+
+Epoch 581, training: loss = 4.72431, R2 = 0.96360, density = 0.01845, sparsity = 98.15% 
+
+
+Epoch 582, training: loss = 4.61935, R2 = 0.96343, density = 0.01916, sparsity = 98.08% 
+
+
+Epoch 583, training: loss = 4.77291, R2 = 0.96335, density = 0.02143, sparsity = 97.86% 
+
+
+Epoch 584, training: loss = 4.89714, R2 = 0.96363, density = 0.01916, sparsity = 98.08% 
+
+
+Epoch 585, training: loss = 5.03183, R2 = 0.96067, density = 0.02328, sparsity = 97.67% 
+
+
+Epoch 586, training: loss = 5.67699, R2 = 0.96236, density = 0.02328, sparsity = 97.67% 
+
+
+Epoch 587, training: loss = 5.38590, R2 = 0.96246, density = 0.02370, sparsity = 97.63% 
+
+
+Epoch 588, training: loss = 5.40410, R2 = 0.96248, density = 0.02484, sparsity = 97.52% 
+
+
+Epoch 589, training: loss = 5.68891, R2 = 0.96044, density = 0.02512, sparsity = 97.49% 
+
+
+Epoch 590, training: loss = 5.67068, R2 = 0.96199, density = 0.02455, sparsity = 97.54% 
+
+
+Epoch 591, training: loss = 5.75626, R2 = 0.96314, density = 0.02455, sparsity = 97.54% 
+
+
+Epoch 592, training: loss = 5.59203, R2 = 0.96300, density = 0.02484, sparsity = 97.52% 
+
+
+Epoch 593, training: loss = 5.82873, R2 = 0.96264, density = 0.02668, sparsity = 97.33% 
+
+
+Epoch 594, training: loss = 6.19297, R2 = 0.96203, density = 0.02711, sparsity = 97.29% 
+
+
+Epoch 595, training: loss = 6.11581, R2 = 0.96323, density = 0.02555, sparsity = 97.45% 
+
+
+Epoch 596, training: loss = 6.27003, R2 = 0.96316, density = 0.02867, sparsity = 97.13% 
+
+
+Epoch 597, training: loss = 6.59809, R2 = 0.96304, density = 0.03009, sparsity = 96.99% 
+
+
+Epoch 598, training: loss = 6.88288, R2 = 0.96024, density = 0.03037, sparsity = 96.96% 
+
+
+Epoch 599, training: loss = 6.68749, R2 = 0.96287, density = 0.02980, sparsity = 97.02% 
+
+
+Epoch 600, training: loss = 6.64445, R2 = 0.96206, density = 0.02952, sparsity = 97.05% 
+
+
+Epoch 601, training: loss = 7.30047, R2 = 0.95527, density = 0.03321, sparsity = 96.68% 
+
+
+Epoch 602, training: loss = 7.37933, R2 = 0.96020, density = 0.03378, sparsity = 96.62% 
+
+
+Epoch 603, training: loss = 7.18172, R2 = 0.96312, density = 0.03023, sparsity = 96.98% 
+
+
+Epoch 604, training: loss = 7.09890, R2 = 0.96291, density = 0.03250, sparsity = 96.75% 
+
+
+Epoch 605, training: loss = 7.16189, R2 = 0.96341, density = 0.03264, sparsity = 96.74% 
+
+
+Epoch 606, training: loss = 7.20605, R2 = 0.96314, density = 0.03122, sparsity = 96.88% 
+
+
+Epoch 607, training: loss = 7.01313, R2 = 0.96382, density = 0.03094, sparsity = 96.91% 
+
+
+Epoch 608, training: loss = 7.16807, R2 = 0.96287, density = 0.03250, sparsity = 96.75% 
+
+
+Epoch 609, training: loss = 7.46081, R2 = 0.96199, density = 0.03420, sparsity = 96.58% 
+
+
+Epoch 610, training: loss = 7.36588, R2 = 0.96395, density = 0.03321, sparsity = 96.68% 
+
+
+Epoch 611, training: loss = 7.44790, R2 = 0.96044, density = 0.03435, sparsity = 96.57% 
+
+
+Epoch 612, training: loss = 8.14780, R2 = 0.95630, density = 0.03946, sparsity = 96.05% 
+
+
+Epoch 613, training: loss = 8.17094, R2 = 0.96149, density = 0.03704, sparsity = 96.30% 
+
+
+Epoch 614, training: loss = 8.27954, R2 = 0.96346, density = 0.03946, sparsity = 96.05% 
+
+
+Epoch 615, training: loss = 8.42561, R2 = 0.96328, density = 0.03832, sparsity = 96.17% 
+
+
+Epoch 616, training: loss = 8.61666, R2 = 0.96380, density = 0.04130, sparsity = 95.87% 
+
+
+Epoch 617, training: loss = 9.06613, R2 = 0.96189, density = 0.04130, sparsity = 95.87% 
+
+
+Epoch 618, training: loss = 9.03830, R2 = 0.96337, density = 0.04158, sparsity = 95.84% 
+
+
+Epoch 619, training: loss = 8.96517, R2 = 0.96290, density = 0.04371, sparsity = 95.63% 
+
+
+Epoch 620, training: loss = 9.38173, R2 = 0.96358, density = 0.04428, sparsity = 95.57% 
+
+
+Epoch 621, training: loss = 9.69972, R2 = 0.96295, density = 0.04385, sparsity = 95.61% 
+
+
+Epoch 622, training: loss = 9.84079, R2 = 0.96232, density = 0.04783, sparsity = 95.22% 
+
+
+Epoch 623, training: loss = 10.31284, R2 = 0.96259, density = 0.04982, sparsity = 95.02% 
+
+
+Epoch 624, training: loss = 10.54199, R2 = 0.95976, density = 0.04939, sparsity = 95.06% 
+
+
+Epoch 625, training: loss = 10.79102, R2 = 0.96210, density = 0.04982, sparsity = 95.02% 
+
+
+Epoch 626, training: loss = 10.67690, R2 = 0.96375, density = 0.05038, sparsity = 94.96% 
+
+
+Epoch 627, training: loss = 10.68533, R2 = 0.96374, density = 0.05294, sparsity = 94.71% 
+
+
+Epoch 628, training: loss = 11.24499, R2 = 0.96217, density = 0.05450, sparsity = 94.55% 
+
+
+Epoch 629, training: loss = 11.57291, R2 = 0.96205, density = 0.05336, sparsity = 94.66% 
+
+
+Epoch 630, training: loss = 12.16115, R2 = 0.96114, density = 0.05606, sparsity = 94.39% 
+
+
+Epoch 631, training: loss = 12.24034, R2 = 0.96267, density = 0.05734, sparsity = 94.27% 
+
+
+Epoch 632, training: loss = 12.01550, R2 = 0.96395, density = 0.05606, sparsity = 94.39% 
+
+
+Epoch 633, training: loss = 12.23138, R2 = 0.96285, density = 0.06216, sparsity = 93.78% 
+
+
+Epoch 634, training: loss = 12.86640, R2 = 0.96208, density = 0.06060, sparsity = 93.94% 
+
+
+Epoch 635, training: loss = 12.91243, R2 = 0.96101, density = 0.05989, sparsity = 94.01% 
+
+
+Epoch 636, training: loss = 12.88496, R2 = 0.96060, density = 0.06117, sparsity = 93.88% 
+
+
+Epoch 637, training: loss = 12.87268, R2 = 0.96267, density = 0.06401, sparsity = 93.60% 
+
+
+Epoch 638, training: loss = 13.20624, R2 = 0.95993, density = 0.06486, sparsity = 93.51% 
+
+
+Epoch 639, training: loss = 13.81777, R2 = 0.95702, density = 0.06614, sparsity = 93.39% 
+
+
+Epoch 640, training: loss = 13.83640, R2 = 0.95994, density = 0.06486, sparsity = 93.51% 
+
+
+Epoch 641, training: loss = 13.84650, R2 = 0.95871, density = 0.06571, sparsity = 93.43% 
+
+
+Epoch 642, training: loss = 14.40430, R2 = 0.95985, density = 0.06869, sparsity = 93.13% 
+
+
+Epoch 643, training: loss = 15.54915, R2 = 0.96144, density = 0.07749, sparsity = 92.25% 
+
+
+Epoch 644, training: loss = 17.07937, R2 = 0.96256, density = 0.08572, sparsity = 91.43% 
+
+
+Epoch 645, training: loss = 17.70951, R2 = 0.96199, density = 0.08473, sparsity = 91.53% 
+
+
+Epoch 646, training: loss = 17.21851, R2 = 0.96238, density = 0.08146, sparsity = 91.85% 
+
+
+Epoch 647, training: loss = 17.04841, R2 = 0.96309, density = 0.08217, sparsity = 91.78% 
+
+
+Epoch 648, training: loss = 17.16869, R2 = 0.96332, density = 0.08799, sparsity = 91.20% 
+
+
+Epoch 649, training: loss = 17.51245, R2 = 0.96383, density = 0.09083, sparsity = 90.92% 
+
+
+Epoch 650, training: loss = 17.45498, R2 = 0.96360, density = 0.08814, sparsity = 91.19% 
+
+
+Epoch 651, training: loss = 17.39565, R2 = 0.96364, density = 0.08473, sparsity = 91.53% 
+
+
+Epoch 652, training: loss = 17.52904, R2 = 0.96311, density = 0.08515, sparsity = 91.48% 
+
+
+Epoch 653, training: loss = 17.93161, R2 = 0.96358, density = 0.08771, sparsity = 91.23% 
+
+
+Epoch 654, training: loss = 18.64483, R2 = 0.96316, density = 0.09367, sparsity = 90.63% 
+
+
+Epoch 655, training: loss = 19.25621, R2 = 0.96356, density = 0.09509, sparsity = 90.49% 
+
+
+Epoch 656, training: loss = 19.65466, R2 = 0.96177, density = 0.09750, sparsity = 90.25% 
+
+
+Epoch 657, training: loss = 19.74470, R2 = 0.96237, density = 0.09537, sparsity = 90.46% 
+
+
+Epoch 658, training: loss = 20.25094, R2 = 0.96182, density = 0.10190, sparsity = 89.81% 
+
+
+Epoch 659, training: loss = 21.20905, R2 = 0.96253, density = 0.10417, sparsity = 89.58% 
+
+
+Epoch 660, training: loss = 21.58884, R2 = 0.96350, density = 0.10616, sparsity = 89.38% 
+
+
+Epoch 661, training: loss = 21.50705, R2 = 0.96243, density = 0.10616, sparsity = 89.38% 
+
+
+Epoch 662, training: loss = 21.27129, R2 = 0.96275, density = 0.10346, sparsity = 89.65% 
+
+
+Epoch 663, training: loss = 21.70044, R2 = 0.95869, density = 0.10900, sparsity = 89.10% 
+
+
+Epoch 664, training: loss = 22.73282, R2 = 0.95685, density = 0.11368, sparsity = 88.63% 
+
+
+Epoch 665, training: loss = 22.99262, R2 = 0.96167, density = 0.11368, sparsity = 88.63% 
+
+
+Epoch 666, training: loss = 22.45095, R2 = 0.95958, density = 0.10559, sparsity = 89.44% 
+
+
+Epoch 667, training: loss = 16.89688, R2 = 0.95957, density = 0.03293, sparsity = 96.71% 
+
+
+Epoch 668, training: loss = 12.82640, R2 = 0.96331, density = 0.06628, sparsity = 93.37% 
+
+
+Epoch 669, training: loss = 10.45132, R2 = 0.96318, density = 0.02980, sparsity = 97.02% 
+
+
+Epoch 670, training: loss = 8.02864, R2 = 0.96365, density = 0.03094, sparsity = 96.91% 
+
+
+Epoch 671, training: loss = 5.83038, R2 = 0.96386, density = 0.01405, sparsity = 98.59% 
+
+
+Epoch 672, training: loss = 4.14124, R2 = 0.96388, density = 0.00568, sparsity = 99.43% 
+
+
+Epoch 673, training: loss = 2.82141, R2 = 0.96399, density = 0.00227, sparsity = 99.77% 
+
+
+Epoch 674, training: loss = 2.00544, R2 = 0.96395, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 675, training: loss = 1.51045, R2 = 0.96396, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 676, training: loss = 1.24264, R2 = 0.96403, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 677, training: loss = 1.15321, R2 = 0.96393, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 678, training: loss = 1.09585, R2 = 0.96399, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 679, training: loss = 1.06398, R2 = 0.96398, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 680, training: loss = 1.04317, R2 = 0.96401, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 681, training: loss = 1.04451, R2 = 0.96400, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 682, training: loss = 1.03727, R2 = 0.96402, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 683, training: loss = 1.03254, R2 = 0.96401, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 684, training: loss = 1.04616, R2 = 0.96399, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 685, training: loss = 1.03747, R2 = 0.96398, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 686, training: loss = 1.02317, R2 = 0.96398, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 687, training: loss = 1.02912, R2 = 0.96392, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 688, training: loss = 1.02580, R2 = 0.96400, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 689, training: loss = 1.02714, R2 = 0.96400, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 690, training: loss = 1.03070, R2 = 0.96396, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 691, training: loss = 1.02715, R2 = 0.96398, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 692, training: loss = 1.04870, R2 = 0.96388, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 693, training: loss = 1.06492, R2 = 0.96400, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 694, training: loss = 1.03895, R2 = 0.96402, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 695, training: loss = 1.02203, R2 = 0.96398, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 696, training: loss = 1.05545, R2 = 0.96388, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 697, training: loss = 1.04216, R2 = 0.96403, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 698, training: loss = 1.02681, R2 = 0.96402, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 699, training: loss = 1.03231, R2 = 0.96399, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 700, training: loss = 1.03464, R2 = 0.96399, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 701, training: loss = 1.03226, R2 = 0.96399, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 702, training: loss = 1.05574, R2 = 0.96387, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 703, training: loss = 1.03197, R2 = 0.96399, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 704, training: loss = 1.04001, R2 = 0.96398, density = 0.00099, sparsity = 99.90% 
+
+
+Epoch 705, training: loss = 1.05398, R2 = 0.96383, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 706, training: loss = 1.04445, R2 = 0.96382, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 707, training: loss = 1.04515, R2 = 0.96391, density = 0.00099, sparsity = 99.90% 
+
+
+Epoch 708, training: loss = 1.04590, R2 = 0.96400, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 709, training: loss = 1.04915, R2 = 0.96396, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 710, training: loss = 1.03351, R2 = 0.96399, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 711, training: loss = 1.03557, R2 = 0.96395, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 712, training: loss = 1.02357, R2 = 0.96398, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 713, training: loss = 1.02939, R2 = 0.96401, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 714, training: loss = 1.03562, R2 = 0.96398, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 715, training: loss = 1.01522, R2 = 0.96397, density = 0.00099, sparsity = 99.90% 
+
+
+Epoch 716, training: loss = 1.04264, R2 = 0.96384, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 717, training: loss = 1.03980, R2 = 0.96395, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 718, training: loss = 1.03100, R2 = 0.96397, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 719, training: loss = 1.03176, R2 = 0.96391, density = 0.00099, sparsity = 99.90% 
+
+
+Epoch 720, training: loss = 1.03650, R2 = 0.96402, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 721, training: loss = 1.04027, R2 = 0.96390, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 722, training: loss = 1.02455, R2 = 0.96396, density = 0.00099, sparsity = 99.90% 
+
+
+Epoch 723, training: loss = 1.02696, R2 = 0.96392, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 724, training: loss = 1.02568, R2 = 0.96383, density = 0.00099, sparsity = 99.90% 
+
+
+Epoch 725, training: loss = 1.01832, R2 = 0.96403, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 726, training: loss = 1.03444, R2 = 0.96372, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 727, training: loss = 1.04426, R2 = 0.96381, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 728, training: loss = 1.03188, R2 = 0.96398, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 729, training: loss = 1.03685, R2 = 0.96397, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 730, training: loss = 1.02531, R2 = 0.96387, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 731, training: loss = 1.05602, R2 = 0.96394, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 732, training: loss = 1.04637, R2 = 0.96390, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 733, training: loss = 1.06787, R2 = 0.96367, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 734, training: loss = 1.05384, R2 = 0.96394, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 735, training: loss = 1.04042, R2 = 0.96393, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 736, training: loss = 1.03588, R2 = 0.96384, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 737, training: loss = 1.04242, R2 = 0.96386, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 738, training: loss = 1.04790, R2 = 0.96379, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 739, training: loss = 1.03697, R2 = 0.96379, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 740, training: loss = 1.03982, R2 = 0.96391, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 741, training: loss = 1.05163, R2 = 0.96361, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 742, training: loss = 1.03778, R2 = 0.96388, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 743, training: loss = 1.04111, R2 = 0.96394, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 744, training: loss = 1.03960, R2 = 0.96386, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 745, training: loss = 1.04696, R2 = 0.96393, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 746, training: loss = 1.05979, R2 = 0.96348, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 747, training: loss = 1.04446, R2 = 0.96392, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 748, training: loss = 1.05205, R2 = 0.96387, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 749, training: loss = 1.05997, R2 = 0.96384, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 750, training: loss = 1.03274, R2 = 0.96387, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 751, training: loss = 1.06468, R2 = 0.96383, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 752, training: loss = 1.03600, R2 = 0.96386, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 753, training: loss = 1.04886, R2 = 0.96391, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 754, training: loss = 1.05230, R2 = 0.96367, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 755, training: loss = 1.02747, R2 = 0.96386, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 756, training: loss = 1.03380, R2 = 0.96385, density = 0.00099, sparsity = 99.90% 
+
+
+Epoch 757, training: loss = 1.03278, R2 = 0.96386, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 758, training: loss = 1.03452, R2 = 0.96394, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 759, training: loss = 1.02727, R2 = 0.96387, density = 0.00099, sparsity = 99.90% 
+
+
+Epoch 760, training: loss = 1.00632, R2 = 0.96393, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 761, training: loss = 1.03481, R2 = 0.96382, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 762, training: loss = 1.03860, R2 = 0.96391, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 763, training: loss = 1.05684, R2 = 0.96389, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 764, training: loss = 1.03021, R2 = 0.96390, density = 0.00099, sparsity = 99.90% 
+
+
+Epoch 765, training: loss = 1.03078, R2 = 0.96385, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 766, training: loss = 1.02448, R2 = 0.96392, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 767, training: loss = 1.03451, R2 = 0.96388, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 768, training: loss = 1.04471, R2 = 0.96383, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 769, training: loss = 1.03210, R2 = 0.96378, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 770, training: loss = 1.03328, R2 = 0.96384, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 771, training: loss = 1.05992, R2 = 0.96376, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 772, training: loss = 1.03847, R2 = 0.96385, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 773, training: loss = 1.03585, R2 = 0.96385, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 774, training: loss = 1.02535, R2 = 0.96390, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 775, training: loss = 1.03144, R2 = 0.96390, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 776, training: loss = 1.02266, R2 = 0.96388, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 777, training: loss = 1.02456, R2 = 0.96389, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 778, training: loss = 1.04091, R2 = 0.96378, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 779, training: loss = 1.03251, R2 = 0.96389, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 780, training: loss = 1.07590, R2 = 0.96382, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 781, training: loss = 1.04448, R2 = 0.96384, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 782, training: loss = 1.03745, R2 = 0.96387, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 783, training: loss = 1.03007, R2 = 0.96387, density = 0.00099, sparsity = 99.90% 
+
+
+Epoch 784, training: loss = 1.02832, R2 = 0.96384, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 785, training: loss = 1.03723, R2 = 0.96394, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 786, training: loss = 1.05216, R2 = 0.96380, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 787, training: loss = 1.03983, R2 = 0.96373, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 788, training: loss = 1.03741, R2 = 0.96366, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 789, training: loss = 1.04826, R2 = 0.96372, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 790, training: loss = 1.05024, R2 = 0.96369, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 791, training: loss = 1.05577, R2 = 0.96372, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 792, training: loss = 1.04562, R2 = 0.96378, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 793, training: loss = 1.03934, R2 = 0.96383, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 794, training: loss = 1.02940, R2 = 0.96384, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 795, training: loss = 1.04165, R2 = 0.96377, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 796, training: loss = 1.03751, R2 = 0.96386, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 797, training: loss = 1.04386, R2 = 0.96387, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 798, training: loss = 1.04017, R2 = 0.96384, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 799, training: loss = 1.02187, R2 = 0.96381, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 800, training: loss = 1.02630, R2 = 0.96378, density = 0.00099, sparsity = 99.90% 
+
+
+Epoch 801, training: loss = 1.02034, R2 = 0.96384, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 802, training: loss = 1.04115, R2 = 0.96374, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 803, training: loss = 1.04306, R2 = 0.96374, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 804, training: loss = 1.03722, R2 = 0.96388, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 805, training: loss = 1.04214, R2 = 0.96380, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 806, training: loss = 1.03391, R2 = 0.96382, density = 0.00099, sparsity = 99.90% 
+
+
+Epoch 807, training: loss = 1.02310, R2 = 0.96387, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 808, training: loss = 1.05810, R2 = 0.96377, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 809, training: loss = 1.05026, R2 = 0.96377, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 810, training: loss = 1.06441, R2 = 0.96379, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 811, training: loss = 1.06101, R2 = 0.96359, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 812, training: loss = 1.07213, R2 = 0.96387, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 813, training: loss = 1.07091, R2 = 0.96367, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 814, training: loss = 1.04155, R2 = 0.96391, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 815, training: loss = 1.08519, R2 = 0.96371, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 816, training: loss = 1.06269, R2 = 0.96381, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 817, training: loss = 1.04683, R2 = 0.96372, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 818, training: loss = 1.04248, R2 = 0.96370, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 819, training: loss = 1.02047, R2 = 0.96369, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 820, training: loss = 1.06334, R2 = 0.96384, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 821, training: loss = 1.03986, R2 = 0.96382, density = 0.00099, sparsity = 99.90% 
+
+
+Epoch 822, training: loss = 1.04863, R2 = 0.96384, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 823, training: loss = 1.04947, R2 = 0.96369, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 824, training: loss = 1.02379, R2 = 0.96376, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 825, training: loss = 1.05804, R2 = 0.96386, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 826, training: loss = 1.04517, R2 = 0.96372, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 827, training: loss = 1.04018, R2 = 0.96380, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 828, training: loss = 1.05405, R2 = 0.96372, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 829, training: loss = 1.04736, R2 = 0.96379, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 830, training: loss = 1.06735, R2 = 0.96381, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 831, training: loss = 1.04327, R2 = 0.96370, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 832, training: loss = 1.03778, R2 = 0.96376, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 833, training: loss = 1.03888, R2 = 0.96376, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 834, training: loss = 1.04672, R2 = 0.96377, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 835, training: loss = 1.05979, R2 = 0.96343, density = 0.00142, sparsity = 99.86% 
+
+
+Epoch 836, training: loss = 1.05496, R2 = 0.96384, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 837, training: loss = 1.06375, R2 = 0.96343, density = 0.00114, sparsity = 99.89% 
+
+
+Epoch 838, training: loss = 1.07621, R2 = 0.96374, density = 0.00142, sparsity = 99.86% 
+
+
+Epoch 839, training: loss = 1.06275, R2 = 0.96371, density = 0.00128, sparsity = 99.87% 
+
+
+Epoch 840, training: loss = 1.04664, R2 = 0.96374, density = 0.00099, sparsity = 99.90% 
+
+
+Epoch 841, training: loss = 1.03396, R2 = 0.96373, density = 0.00099, sparsity = 99.90% 
+
+
+Epoch 842, training: loss = 1.07790, R2 = 0.96369, density = 0.00227, sparsity = 99.77% 
+
+
+Epoch 843, training: loss = 1.33212, R2 = 0.96355, density = 0.00369, sparsity = 99.63% 
+
+
+Epoch 844, training: loss = 1.80505, R2 = 0.96380, density = 0.00781, sparsity = 99.22% 
+
+
+Epoch 845, training: loss = 2.93576, R2 = 0.96373, density = 0.01689, sparsity = 98.31% 
+
+
+Epoch 846, training: loss = 4.26558, R2 = 0.96367, density = 0.02129, sparsity = 97.87% 
+
+
+Epoch 847, training: loss = 5.55626, R2 = 0.96375, density = 0.03335, sparsity = 96.66% 
+
+
+Epoch 848, training: loss = 7.29788, R2 = 0.96373, density = 0.03946, sparsity = 96.05% 
+
+
+Epoch 849, training: loss = 8.48253, R2 = 0.96373, density = 0.04428, sparsity = 95.57% 
+
+
+Epoch 850, training: loss = 9.65715, R2 = 0.96374, density = 0.04542, sparsity = 95.46% 
+
+
+Epoch 851, training: loss = 9.82024, R2 = 0.96372, density = 0.04016, sparsity = 95.98% 
+
+
+Epoch 852, training: loss = 9.80774, R2 = 0.96373, density = 0.04556, sparsity = 95.44% 
+
+
+Epoch 853, training: loss = 10.76050, R2 = 0.96368, density = 0.04754, sparsity = 95.25% 
+
+
+Epoch 854, training: loss = 11.04952, R2 = 0.96374, density = 0.04939, sparsity = 95.06% 
+
+
+Epoch 855, training: loss = 11.33512, R2 = 0.96366, density = 0.05322, sparsity = 94.68% 
+
+
+Epoch 856, training: loss = 11.70075, R2 = 0.96371, density = 0.05322, sparsity = 94.68% 
+
+
+Epoch 857, training: loss = 11.44538, R2 = 0.96368, density = 0.04584, sparsity = 95.42% 
+
+
+Epoch 858, training: loss = 10.64504, R2 = 0.96374, density = 0.04215, sparsity = 95.78% 
+
+
+Epoch 859, training: loss = 10.12634, R2 = 0.96377, density = 0.03704, sparsity = 96.30% 
+
+
+Epoch 860, training: loss = 8.83822, R2 = 0.96368, density = 0.03066, sparsity = 96.93% 
+
+
+Epoch 861, training: loss = 7.68913, R2 = 0.96366, density = 0.02697, sparsity = 97.30% 
+
+
+Epoch 862, training: loss = 7.10015, R2 = 0.96374, density = 0.02242, sparsity = 97.76% 
+
+
+Epoch 863, training: loss = 6.41669, R2 = 0.96368, density = 0.02242, sparsity = 97.76% 
+
+
+Epoch 864, training: loss = 5.83055, R2 = 0.96357, density = 0.01916, sparsity = 98.08% 
+
+
+Epoch 865, training: loss = 5.13657, R2 = 0.96371, density = 0.01604, sparsity = 98.40% 
+
+
+Epoch 866, training: loss = 4.59896, R2 = 0.96372, density = 0.01448, sparsity = 98.55% 
+
+
+Epoch 867, training: loss = 4.11493, R2 = 0.96362, density = 0.01377, sparsity = 98.62% 
+
+
+Epoch 868, training: loss = 3.94867, R2 = 0.96376, density = 0.01348, sparsity = 98.65% 
+
+
+Epoch 869, training: loss = 3.91583, R2 = 0.96372, density = 0.01206, sparsity = 98.79% 
+
+
+Epoch 870, training: loss = 3.91437, R2 = 0.96356, density = 0.01320, sparsity = 98.68% 
+
+
+Epoch 871, training: loss = 3.73158, R2 = 0.96365, density = 0.01306, sparsity = 98.69% 
+
+
+Epoch 872, training: loss = 3.75755, R2 = 0.96371, density = 0.01362, sparsity = 98.64% 
+
+
+Epoch 873, training: loss = 3.72219, R2 = 0.96371, density = 0.01277, sparsity = 98.72% 
+
+
+Epoch 874, training: loss = 3.68185, R2 = 0.96368, density = 0.01462, sparsity = 98.54% 
+
+
+Epoch 875, training: loss = 3.68295, R2 = 0.96372, density = 0.01320, sparsity = 98.68% 
+
+
+Epoch 876, training: loss = 3.65310, R2 = 0.96365, density = 0.01334, sparsity = 98.67% 
+
+
+Epoch 877, training: loss = 3.87436, R2 = 0.96357, density = 0.01504, sparsity = 98.50% 
+
+
+Epoch 878, training: loss = 4.30763, R2 = 0.96345, density = 0.01859, sparsity = 98.14% 
+
+
+Epoch 879, training: loss = 4.60780, R2 = 0.96366, density = 0.01987, sparsity = 98.01% 
+
+
+Epoch 880, training: loss = 4.72466, R2 = 0.96376, density = 0.02086, sparsity = 97.91% 
+
+
+Epoch 881, training: loss = 4.96389, R2 = 0.96371, density = 0.02044, sparsity = 97.96% 
+
+
+Epoch 882, training: loss = 5.42798, R2 = 0.96369, density = 0.02171, sparsity = 97.83% 
+
+
+Epoch 883, training: loss = 6.01954, R2 = 0.96354, density = 0.02782, sparsity = 97.22% 
+
+
+Epoch 884, training: loss = 6.74456, R2 = 0.96366, density = 0.03222, sparsity = 96.78% 
+
+
+Epoch 885, training: loss = 7.29637, R2 = 0.96365, density = 0.03435, sparsity = 96.57% 
+
+
+Epoch 886, training: loss = 8.26258, R2 = 0.96369, density = 0.03960, sparsity = 96.04% 
+
+
+Epoch 887, training: loss = 9.38439, R2 = 0.96357, density = 0.04655, sparsity = 95.34% 
+
+
+Epoch 888, training: loss = 10.46281, R2 = 0.96363, density = 0.05053, sparsity = 94.95% 
+
+
+Epoch 889, training: loss = 11.68443, R2 = 0.96368, density = 0.05620, sparsity = 94.38% 
+
+
+Epoch 890, training: loss = 12.16533, R2 = 0.96341, density = 0.05507, sparsity = 94.49% 
+
+
+Epoch 891, training: loss = 12.68500, R2 = 0.96348, density = 0.05876, sparsity = 94.12% 
+
+
+Epoch 892, training: loss = 13.15879, R2 = 0.96366, density = 0.05890, sparsity = 94.11% 
+
+
+Epoch 893, training: loss = 13.27170, R2 = 0.96368, density = 0.05620, sparsity = 94.38% 
+
+
+Epoch 894, training: loss = 13.18086, R2 = 0.96365, density = 0.05407, sparsity = 94.59% 
+
+
+Epoch 895, training: loss = 12.89413, R2 = 0.96366, density = 0.05265, sparsity = 94.73% 
+
+
+Epoch 896, training: loss = 12.14886, R2 = 0.96361, density = 0.05379, sparsity = 94.62% 
+
+
+Epoch 897, training: loss = 11.83504, R2 = 0.96348, density = 0.04343, sparsity = 95.66% 
+
+
+Epoch 898, training: loss = 10.74027, R2 = 0.96334, density = 0.03988, sparsity = 96.01% 
+
+
+Epoch 899, training: loss = 9.83682, R2 = 0.96361, density = 0.03761, sparsity = 96.24% 
+
+
+Epoch 900, training: loss = 8.90054, R2 = 0.96367, density = 0.03207, sparsity = 96.79% 
+
+
+Epoch 901, training: loss = 7.90772, R2 = 0.96365, density = 0.02895, sparsity = 97.10% 
+
+
+Epoch 902, training: loss = 7.06671, R2 = 0.96369, density = 0.02555, sparsity = 97.45% 
+
+
+Epoch 903, training: loss = 6.66212, R2 = 0.96360, density = 0.02271, sparsity = 97.73% 
+
+
+Epoch 904, training: loss = 6.41869, R2 = 0.96361, density = 0.02597, sparsity = 97.40% 
+
+
+Epoch 905, training: loss = 6.33329, R2 = 0.96363, density = 0.02555, sparsity = 97.45% 
+
+
+Epoch 906, training: loss = 6.35402, R2 = 0.96364, density = 0.02682, sparsity = 97.32% 
+
+
+Epoch 907, training: loss = 6.63202, R2 = 0.96367, density = 0.02654, sparsity = 97.35% 
+
+
+Epoch 908, training: loss = 6.82239, R2 = 0.96354, density = 0.02469, sparsity = 97.53% 
+
+
+Epoch 909, training: loss = 6.79279, R2 = 0.96358, density = 0.02725, sparsity = 97.28% 
+
+
+Epoch 910, training: loss = 6.83814, R2 = 0.96360, density = 0.02611, sparsity = 97.39% 
+
+
+Epoch 911, training: loss = 7.11102, R2 = 0.96352, density = 0.03094, sparsity = 96.91% 
+
+
+Epoch 912, training: loss = 8.02313, R2 = 0.96368, density = 0.03718, sparsity = 96.28% 
+
+
+Epoch 913, training: loss = 9.19928, R2 = 0.96354, density = 0.03846, sparsity = 96.15% 
+
+
+Epoch 914, training: loss = 9.51558, R2 = 0.96364, density = 0.04286, sparsity = 95.71% 
+
+
+Epoch 915, training: loss = 10.43503, R2 = 0.96359, density = 0.04570, sparsity = 95.43% 
+
+
+Epoch 916, training: loss = 10.88950, R2 = 0.96368, density = 0.04783, sparsity = 95.22% 
+
+
+Epoch 917, training: loss = 11.58108, R2 = 0.96356, density = 0.05053, sparsity = 94.95% 
+
+
+Epoch 918, training: loss = 12.18259, R2 = 0.96351, density = 0.05705, sparsity = 94.29% 
+
+
+Epoch 919, training: loss = 12.85196, R2 = 0.96365, density = 0.05322, sparsity = 94.68% 
+
+
+Epoch 920, training: loss = 13.13926, R2 = 0.96359, density = 0.06245, sparsity = 93.76% 
+
+
+Epoch 921, training: loss = 13.73378, R2 = 0.96355, density = 0.06018, sparsity = 93.98% 
+
+
+Epoch 922, training: loss = 14.00586, R2 = 0.96366, density = 0.05918, sparsity = 94.08% 
+
+
+Epoch 923, training: loss = 13.96658, R2 = 0.96355, density = 0.05776, sparsity = 94.22% 
+
+
+Epoch 924, training: loss = 13.44375, R2 = 0.96329, density = 0.05478, sparsity = 94.52% 
+
+
+Epoch 925, training: loss = 13.16453, R2 = 0.96352, density = 0.05180, sparsity = 94.82% 
+
+
+Epoch 926, training: loss = 12.55117, R2 = 0.96358, density = 0.05379, sparsity = 94.62% 
+
+
+Epoch 927, training: loss = 12.65423, R2 = 0.96365, density = 0.04982, sparsity = 95.02% 
+
+
+Epoch 928, training: loss = 12.24195, R2 = 0.96333, density = 0.04911, sparsity = 95.09% 
+
+
+Epoch 929, training: loss = 11.72217, R2 = 0.96367, density = 0.04655, sparsity = 95.34% 
+
+
+Epoch 930, training: loss = 11.28242, R2 = 0.96345, density = 0.04499, sparsity = 95.50% 
+
+
+Epoch 931, training: loss = 10.48640, R2 = 0.96362, density = 0.04300, sparsity = 95.70% 
+
+
+Epoch 932, training: loss = 10.10304, R2 = 0.96359, density = 0.03676, sparsity = 96.32% 
+
+
+Epoch 933, training: loss = 9.56354, R2 = 0.96357, density = 0.03704, sparsity = 96.30% 
+
+
+Epoch 934, training: loss = 9.51536, R2 = 0.96363, density = 0.03860, sparsity = 96.14% 
+
+
+Epoch 935, training: loss = 9.49061, R2 = 0.96363, density = 0.04215, sparsity = 95.78% 
+
+
+Epoch 936, training: loss = 9.53426, R2 = 0.96346, density = 0.03931, sparsity = 96.07% 
+
+
+Epoch 937, training: loss = 9.65079, R2 = 0.96364, density = 0.04102, sparsity = 95.90% 
+
+
+Epoch 938, training: loss = 9.83970, R2 = 0.96349, density = 0.04272, sparsity = 95.73% 
+
+
+Epoch 939, training: loss = 10.42268, R2 = 0.96333, density = 0.04896, sparsity = 95.10% 
+
+
+Epoch 940, training: loss = 11.40500, R2 = 0.96364, density = 0.05067, sparsity = 94.93% 
+
+
+Epoch 941, training: loss = 11.73247, R2 = 0.96355, density = 0.05436, sparsity = 94.56% 
+
+
+Epoch 942, training: loss = 12.70085, R2 = 0.96365, density = 0.05024, sparsity = 94.98% 
+
+
+Epoch 943, training: loss = 12.69911, R2 = 0.96353, density = 0.05649, sparsity = 94.35% 
+
+
+Epoch 944, training: loss = 13.21534, R2 = 0.96357, density = 0.06003, sparsity = 94.00% 
+
+
+Epoch 945, training: loss = 13.90691, R2 = 0.96361, density = 0.06018, sparsity = 93.98% 
+
+
+Epoch 946, training: loss = 14.42847, R2 = 0.96357, density = 0.06585, sparsity = 93.41% 
+
+
+Epoch 947, training: loss = 14.78567, R2 = 0.96364, density = 0.05975, sparsity = 94.02% 
+
+
+Epoch 948, training: loss = 14.46118, R2 = 0.96357, density = 0.06046, sparsity = 93.95% 
+
+
+Epoch 949, training: loss = 14.23554, R2 = 0.96359, density = 0.06415, sparsity = 93.59% 
+
+
+Epoch 950, training: loss = 14.72218, R2 = 0.96357, density = 0.05961, sparsity = 94.04% 
+
+
+Epoch 951, training: loss = 15.12440, R2 = 0.96358, density = 0.06656, sparsity = 93.34% 
+
+
+Epoch 952, training: loss = 14.83826, R2 = 0.96357, density = 0.05947, sparsity = 94.05% 
+
+
+Epoch 953, training: loss = 13.93355, R2 = 0.96353, density = 0.05095, sparsity = 94.90% 
+
+
+Epoch 954, training: loss = 13.40320, R2 = 0.96361, density = 0.05691, sparsity = 94.31% 
+
+
+Epoch 955, training: loss = 13.46189, R2 = 0.96354, density = 0.05308, sparsity = 94.69% 
+
+
+Epoch 956, training: loss = 13.01302, R2 = 0.96354, density = 0.05393, sparsity = 94.61% 
+
+
+Epoch 957, training: loss = 13.22600, R2 = 0.96351, density = 0.05407, sparsity = 94.59% 
+
+
+Epoch 958, training: loss = 12.92995, R2 = 0.96360, density = 0.05535, sparsity = 94.46% 
+
+
+Epoch 959, training: loss = 12.67985, R2 = 0.96357, density = 0.05336, sparsity = 94.66% 
+
+
+Epoch 960, training: loss = 12.64866, R2 = 0.96357, density = 0.05053, sparsity = 94.95% 
+
+
+Epoch 961, training: loss = 12.85810, R2 = 0.96349, density = 0.05393, sparsity = 94.61% 
+
+
+Epoch 962, training: loss = 13.12045, R2 = 0.96356, density = 0.05237, sparsity = 94.76% 
+
+
+Epoch 963, training: loss = 13.12965, R2 = 0.96367, density = 0.05209, sparsity = 94.79% 
+
+
+Epoch 964, training: loss = 13.79182, R2 = 0.96360, density = 0.06245, sparsity = 93.76% 
+
+
+Epoch 965, training: loss = 14.24421, R2 = 0.96341, density = 0.05989, sparsity = 94.01% 
+
+
+Epoch 966, training: loss = 13.98707, R2 = 0.96349, density = 0.05535, sparsity = 94.46% 
+
+
+Epoch 967, training: loss = 13.84263, R2 = 0.96361, density = 0.05280, sparsity = 94.72% 
+
+
+Epoch 968, training: loss = 13.86543, R2 = 0.96356, density = 0.05563, sparsity = 94.44% 
+
+
+Epoch 969, training: loss = 14.40876, R2 = 0.96352, density = 0.06529, sparsity = 93.47% 
+
+
+Epoch 970, training: loss = 15.60471, R2 = 0.96357, density = 0.07025, sparsity = 92.97% 
+
+
+Epoch 971, training: loss = 16.01475, R2 = 0.96358, density = 0.07039, sparsity = 92.96% 
+
+
+Epoch 972, training: loss = 15.74926, R2 = 0.96346, density = 0.06089, sparsity = 93.91% 
+
+
+Epoch 973, training: loss = 15.48730, R2 = 0.96355, density = 0.05861, sparsity = 94.14% 
+
+
+Epoch 974, training: loss = 15.43748, R2 = 0.96357, density = 0.06358, sparsity = 93.64% 
+
+
+Epoch 975, training: loss = 15.41002, R2 = 0.96352, density = 0.06387, sparsity = 93.61% 
+
+
+Epoch 976, training: loss = 15.34471, R2 = 0.96363, density = 0.06216, sparsity = 93.78% 
+
+
+Epoch 977, training: loss = 15.06552, R2 = 0.96343, density = 0.05989, sparsity = 94.01% 
+
+
+Epoch 978, training: loss = 14.41317, R2 = 0.96352, density = 0.05521, sparsity = 94.48% 
+
+
+Epoch 979, training: loss = 14.25571, R2 = 0.96346, density = 0.05975, sparsity = 94.02% 
+
+
+Epoch 980, training: loss = 15.16496, R2 = 0.96333, density = 0.06727, sparsity = 93.27% 
+
+
+Epoch 981, training: loss = 15.37012, R2 = 0.96316, density = 0.06401, sparsity = 93.60% 
+
+
+Epoch 982, training: loss = 15.30898, R2 = 0.96353, density = 0.05890, sparsity = 94.11% 
+
+
+Epoch 983, training: loss = 14.40463, R2 = 0.96348, density = 0.05407, sparsity = 94.59% 
+
+
+Epoch 984, training: loss = 14.58289, R2 = 0.96349, density = 0.06046, sparsity = 93.95% 
+
+
+Epoch 985, training: loss = 15.86232, R2 = 0.96365, density = 0.06599, sparsity = 93.40% 
+
+
+Epoch 986, training: loss = 15.82010, R2 = 0.96356, density = 0.06160, sparsity = 93.84% 
+
+
+Epoch 987, training: loss = 15.29417, R2 = 0.96350, density = 0.05280, sparsity = 94.72% 
+
+
+Epoch 988, training: loss = 14.73288, R2 = 0.96344, density = 0.05833, sparsity = 94.17% 
+
+
+Epoch 989, training: loss = 15.28930, R2 = 0.96363, density = 0.06685, sparsity = 93.32% 
+
+
+Epoch 990, training: loss = 16.04850, R2 = 0.96331, density = 0.06827, sparsity = 93.17% 
+
+
+Epoch 991, training: loss = 16.53166, R2 = 0.96348, density = 0.06628, sparsity = 93.37% 
+
+
+Epoch 992, training: loss = 16.29058, R2 = 0.96360, density = 0.06372, sparsity = 93.63% 
+
+
+Epoch 993, training: loss = 15.74418, R2 = 0.96353, density = 0.06387, sparsity = 93.61% 
+
+
+Epoch 994, training: loss = 16.47065, R2 = 0.96353, density = 0.06926, sparsity = 93.07% 
+
+
+Epoch 995, training: loss = 17.00781, R2 = 0.96345, density = 0.06968, sparsity = 93.03% 
+
+
+Epoch 996, training: loss = 17.17001, R2 = 0.96331, density = 0.06628, sparsity = 93.37% 
+
+
+Epoch 997, training: loss = 16.80587, R2 = 0.96344, density = 0.06401, sparsity = 93.60% 
+
+
+Epoch 998, training: loss = 16.01894, R2 = 0.96344, density = 0.06188, sparsity = 93.81% 
+
+
+Epoch 999, training: loss = 16.76064, R2 = 0.96340, density = 0.07181, sparsity = 92.82% 
+
+
+Epoch 1000, training: loss = 17.40923, R2 = 0.96349, density = 0.07494, sparsity = 92.51% 
+
+
+Epoch 1001, training: loss = 17.32422, R2 = 0.96340, density = 0.06628, sparsity = 93.37% 
+
+
+Epoch 1002, training: loss = 16.36154, R2 = 0.96357, density = 0.06074, sparsity = 93.93% 
+
+
+Epoch 1003, training: loss = 15.76267, R2 = 0.96359, density = 0.05691, sparsity = 94.31% 
+
+
+Epoch 1004, training: loss = 16.12040, R2 = 0.96353, density = 0.07054, sparsity = 92.95% 
+
+
+Epoch 1005, training: loss = 16.86124, R2 = 0.96351, density = 0.07082, sparsity = 92.92% 
+
+
+Epoch 1006, training: loss = 15.97189, R2 = 0.96355, density = 0.06727, sparsity = 93.27% 
+
+
+Epoch 1007, training: loss = 15.98523, R2 = 0.96350, density = 0.05762, sparsity = 94.24% 
+
+
+Epoch 1008, training: loss = 15.91145, R2 = 0.96352, density = 0.06344, sparsity = 93.66% 
+
+
+Epoch 1009, training: loss = 16.61307, R2 = 0.96347, density = 0.07082, sparsity = 92.92% 
+
+
+Epoch 1010, training: loss = 17.13676, R2 = 0.96351, density = 0.07054, sparsity = 92.95% 
+
+
+Epoch 1011, training: loss = 16.92186, R2 = 0.96333, density = 0.06543, sparsity = 93.46% 
+
+
+Epoch 1012, training: loss = 16.57707, R2 = 0.96337, density = 0.06074, sparsity = 93.93% 
+
+
+Epoch 1013, training: loss = 16.21381, R2 = 0.96352, density = 0.06216, sparsity = 93.78% 
+
+
+Epoch 1014, training: loss = 16.67922, R2 = 0.96352, density = 0.07139, sparsity = 92.86% 
+
+
+Epoch 1015, training: loss = 17.77383, R2 = 0.96352, density = 0.07281, sparsity = 92.72% 
+
+
+Epoch 1016, training: loss = 17.57479, R2 = 0.96355, density = 0.07267, sparsity = 92.73% 
+
+
+Epoch 1017, training: loss = 17.58758, R2 = 0.96308, density = 0.06500, sparsity = 93.50% 
+
+
+Epoch 1018, training: loss = 17.13310, R2 = 0.96332, density = 0.06614, sparsity = 93.39% 
+
+
+Epoch 1019, training: loss = 17.63739, R2 = 0.96353, density = 0.07550, sparsity = 92.45% 
+
+
+Epoch 1020, training: loss = 17.93349, R2 = 0.96342, density = 0.07196, sparsity = 92.80% 
+
