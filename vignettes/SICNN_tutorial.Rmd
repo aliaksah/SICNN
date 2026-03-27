@@ -61,15 +61,15 @@ n_train <- nrow(Raisin_Dataset) * 0.8
 # Train the model mapping the objective to the Smooth BIC penalty naturally
 results_input_skip <- train_SICNN(epochs = 5000, restarts=1, SICNN = model_input_skip,
                                   lr = 0.01, train_dl = train_loader, device = device,
-                                  scheduler = "step", sch_step_size = 2000, n_train=n_train,
-                                  epsilon_1 = 1, epsilon_T = 1e-4, steps_T = 4000, 
-                                  sic_threshold = 0.5, penalty = 15 * log(n_train))
+                                  scheduler = "step", sch_step_size = 500, n_train=n_train,
+                                  epsilon_1 = 1, epsilon_T = 1e-5, steps_T = 500, 
+                                  sic_threshold = 0.5, penalty = 5 * log(n_train))
 ```
 
 ## Validate
 
 ```{r}
-validate_SICNN(SICNN = model_input_skip, num_samples = 1,
+validate_SICNN(SICNN = model_input_skip,
                test_dl = test_loader, device = device)
 ```
 
@@ -84,6 +84,11 @@ x <- torch::dataloader_next(torch::dataloader_make_iter(train_loader))[[1]]
 inds <- sample.int(dim(x)[1], 1)
 data <- x[inds,]
 plot(model_input_skip, type = "local", data = data)
+
+# Plot local explanation with Delta method uncertainty (using block-diagonal Fisher)
+plot(model_input_skip, type = "local", data = data, 
+     uncertainty = TRUE, fisher_dataloader = test_loader,
+     covariance_type = "block-diagonal")
 ```
 
 Note: All chunks in this vignette are non-evaluated by default to ensure fast builds and avoid backend constraints on CRAN/CI. You can set `eval=TRUE` locally.

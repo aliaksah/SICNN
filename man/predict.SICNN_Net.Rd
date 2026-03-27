@@ -36,16 +36,16 @@ A \code{torch::torch_tensor}  of shape \code{(draws,N,C)} where \code{N} is the 
 Draw from the (variational) posterior distribution of a trained \code{SICNN_Net} object.
 }
 \examples{
-\donttest{ 
-x<-torch::torch_randn(3,2) 
+\donttest{
+x <- torch::torch_randn(3, 2)
 b <- torch::torch_rand(2)
-y <- torch::torch_matmul(x,b)
-train_data <- torch::tensor_dataset(x,y)
-train_loader <- torch::dataloader(train_data,batch_size = 3,shuffle=FALSE)
-problem<-'regression'
-sizes <- c(2,1,1) 
+y <- torch::torch_matmul(x, b)
+train_data <- torch::tensor_dataset(x, y)
+train_loader <- torch::dataloader(train_data, batch_size = 3, shuffle = FALSE)
+problem <- "regression"
+sizes <- c(2, 1, 1)
 model <- SICNN_Net(problem, sizes, input_skip = TRUE)
 train_SICNN(epochs = 1, SICNN = model, lr = 0.01, train_dl = train_loader, n_train = 3)
-predict(model,mpm = FALSE,newdata = train_loader,draws = 1)
+predict(model, mpm = FALSE, newdata = train_loader, draws = 1)
 }
 }

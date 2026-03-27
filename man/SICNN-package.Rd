@@ -6,7 +6,7 @@
 \alias{SICNN-package}
 \title{SICNN: Smooth Information Criterion Neural Networks Using 'torch'}
 \description{
-Smooth Information Criterion Neural Networks (SICNNs) are implemented using 'torch', an R interface to the LibTorch backend. Developed as an evolution of Latent Binary Bayesian Neural Networks (LBBNNs) described in Hubin and Storvik (2024) \doi{10.3390/math12060788}, SICNNs provide a scalable and continuous approach to parameter pruning by leveraging a smooth approximation of the L0 norm (SIC), as described in O'Neill and Burke (2023) \doi{10.48550/arXiv.2212.12644}. The architecture supports deep structures with input-skip connections to facilitate feature selection in high-dimensional settings.
+Smooth Information Criterion Neural Networks (SICNNs) are implemented using 'torch', an R interface to the LibTorch backend. Developed as an evolution of Latent Binary Bayesian Neural Networks (LBBNNs) described in Hubin and Storvik (2024) \doi{10.3390/math12060788} and implemented in the 'LBBNN' R package \url{https://CRAN.R-project.org/package=LBBNN}, SICNNs provide a scalable and continuous approach to parameter pruning by leveraging a smooth approximation of the L0 norm (SIC), as described in O'Neill and Burke (2023) \doi{10.48550/arXiv.2212.12644}. The architecture supports deep structures with input-skip connections to facilitate feature selection in high-dimensional settings.
 }
 \author{
 \strong{Maintainer}: Aliaksandr Hubin \email{aliaksandr.hubin@nmbu.no}

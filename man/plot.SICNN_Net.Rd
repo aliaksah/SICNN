@@ -4,7 +4,7 @@
 \alias{plot.SICNN_Net}
 \title{Plot \code{SICNN_Net} objects}
 \usage{
-\method{plot}{SICNN_Net}(x, type = c("global", "local"), data = NULL, num_samples = 100, ...)
+\method{plot}{SICNN_Net}(x, type = c("global", "local"), data = NULL, ...)
 }
 \arguments{
 \item{x}{An instance of \code{SICNN_Net}.}
@@ -13,9 +13,15 @@
 
 \item{data}{If local is chosen, one sample must be provided to obtain the explanation. Must be a \code{torch::torch_tensor} of shape \code{(1,p)}.}
 
-\item{num_samples}{integer, how many samples to use for model averaging over the weights in case of local explanations.}
-
 \item{...}{further arguments passed to or from other methods.}
+
+\item{uncertainty}{logical, whether to include Delta method uncertainty.}
+
+\item{fisher_dataloader}{A \code{torch::dataloader} to compute the Fisher Information.}
+
+\item{covariance_type}{character, the type of Fisher Information approximation: \code{"diagonal"}, \code{"block-diagonal"}, or \code{"KFAC"}.}
+
+\item{use_pseudo_inverse}{logical, whether to use the pseudo-inverse if the Fisher Information is singular.}
 }
 \value{
 No return value. Called for its side effects of producing a plot.
@@ -26,7 +32,7 @@ Given a trained \code{SICNN_Net} model, this function produces either:
 \item \strong{Global plot}: a visualization of the network structure,
 showing only the active paths.
 \item \strong{Local explanation}: a plot of the local
-explanation for a single input sample, including error bars obtained
-from Monte Carlo sampling of the network weights.
+explanation for a single input sample, optionally including
+error bars from the Delta method.
 }
 }

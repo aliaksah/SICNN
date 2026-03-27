@@ -162,4 +162,37 @@ Because the magnitude of active weights determines their survival against the $\
 \textbf{4. The SIC Threshold (\texttt{sic\_threshold}):}
 After training completes, prediction inference uses this cutoff to strictly sever computational pathways. If the model exhibits high training performance but unexpectedly weak sparse metrics, pushing $\tau$ closer to $0.5$ combined with a higher penalty forces harder delineations, while dropping $\tau \to 10^{-4}$ will safely revive structurally weak but mathematically supportive weights to preserve fragile predictive accuracy.
 
+\section{Frequentist Uncertainty Quantification via the Sandwich Estimator}
+To provide confidence intervals for the local explanations $g(w) = \nabla_x \mu(w, x)$, we employ the Delta method in a Frequentist framework. Given the weight estimate $\hat{w}$ from SIC optimization, we approximate the parameter covariance matrix $\Sigma_w$ using the sandwich estimator proposed by Fan and Li (2001) for penalized likelihood estimators.
+
+Specifically, the asymptotic covariance of the nonzero weights is:
+\begin{equation}
+\Sigma_w = H(\hat{w})^{-1} I_0(\hat{w}) H(\hat{w})^{-1}
+\end{equation}
+where:
+\begin{itemize}
+    \item $H(\hat{w})$ is the Hessian of the penalized SIC objective (the "bread"): $H(\hat{w}) = \nabla^2 \mathcal{L}_{data}(\hat{w}) + \lambda \nabla^2 \|\hat{w}\|_{0,\epsilon}$.
+    \item $I_0(\hat{w})$ is the Empirical Fisher Information (the "meat") of the unpenalized data part: $I_0(\hat{w}) = \sum_i (\nabla \mathcal{L}_{data, i}(\hat{w}))^2$.
+\end{itemize}
+
+The penalized Hessian $H$ incorporates the local curvature of the smooth $L_0$ surrogate at the final epsilon $\epsilon_T$:
+\begin{equation}
+\frac{\partial^2 \phi_\epsilon}{\partial w^2} = \frac{2\epsilon^2 (\epsilon^2 - 3w^2)}{(w^2 + \epsilon^2)^3}
+\end{equation}
+This penalty term effectively increases the precision (decreases variance) for weights being pruned toward zero, while the data information $I_0$ dominates for active predictors.
+
+The variance of the local explanation for a specific input $x$ is then approximated via the Delta method:
+\begin{equation}
+\text{Var}(g(w)) \approx J_g \Sigma_w J_g^T
+\end{equation}
+where $J_g = \frac{\partial^2 \mu(w, x)}{\partial w \partial x}$ is the Jacobian of the gradient with respect to the model weights.
+
+To maintain computational scalability in deep architectures, we support block-diagonal approximations of the sandwich components:
+\begin{itemize}
+    \item \textbf{Diagonal Sandwich:} Both $H$ and $I_0$ are approximated by their diagonals, leading to $\text{Var}(w_j) = \frac{I_{0,jj}}{H_{jj}^2}$.
+    \item \textbf{Block-Diagonal Sandwich:} $H$ and $I_0$ are computed for each layer's weight matrix, and the sandwich is evaluated via block-wise matrix inversion.
+\end{itemize}
+
+This approach allows for robust, post-selection inference that correctly reflects the structural uncertainty of the sparse sub-network discovered by the SIC process, ensuring that confidence intervals are mathematically consistent with the penalized likelihood surface.
+
 \end{document}

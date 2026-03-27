@@ -21,14 +21,14 @@ are used, module and sub-module structure, number of trainable parameters, and p
 variance and inclusion probabilities for the weights.
 }
 \examples{
-\donttest{ 
-x<-torch::torch_randn(3,2) 
+\donttest{
+x <- torch::torch_randn(3, 2)
 b <- torch::torch_rand(2)
-y <- torch::torch_matmul(x,b)
-train_data <- torch::tensor_dataset(x,y)
-train_loader <- torch::dataloader(train_data,batch_size = 3,shuffle=FALSE)
-problem<-'regression'
-sizes <- c(2,1,1) 
+y <- torch::torch_matmul(x, b)
+train_data <- torch::tensor_dataset(x, y)
+train_loader <- torch::dataloader(train_data, batch_size = 3, shuffle = FALSE)
+problem <- "regression"
+sizes <- c(2, 1, 1)
 model <- SICNN_Net(problem, sizes, input_skip = TRUE)
 print(model)
 }

@@ -7,18 +7,21 @@
 get_local_explanations_gradient(
   model,
   input_data,
-  num_samples = 1,
   magnitude = TRUE,
   include_potential_contribution = FALSE,
-  device = "cpu"
+  device = "cpu",
+  uncertainty = FALSE,
+  fisher_dataloader = NULL,
+  covariance_type = c("diagonal", "block-diagonal", "KFAC"),
+  use_pseudo_inverse = FALSE,
+  fisher = NULL,
+  ...
 )
 }
 \arguments{
 \item{model}{A \code{SICNN_Net} with input-skip}
 
 \item{input_data}{The data to be explained (one sample).}
-
-\item{num_samples}{integer, how many samples to use to produce credible intervals.}
 
 \item{magnitude}{If TRUE, only return explanations. If FALSE, multiply by input values.}
 
@@ -27,13 +30,24 @@ we assume that the contribution is negative (good/bad that it is not included)
 if FALSE, just removes zero covariates.}
 
 \item{device}{character, the device to be trained on. Default is 'cpu', can be 'mps' or 'gpu'.}
+
+\item{uncertainty}{logical, whether to compute uncertainty using the Delta method.}
+
+\item{fisher_dataloader}{A \code{torch::dataloader} to compute the Fisher Information. If NULL and uncertainty is TRUE, it defaults to training data if available.}
+
+\item{covariance_type}{character, the type of Fisher Information approximation: \code{"diagonal"}, \code{"block-diagonal"}, or \code{"KFAC"}.}
+
+\item{use_pseudo_inverse}{logical, whether to use the pseudo-inverse if the Fisher Information is singular.}
+
+\item{...}{further arguments (e.g., deprecated num_samples periodically used in old scripts).}
 }
 \value{
 A list with the following elements:
 \describe{
-\item{explanations}{A \code{torch::tensor} of shape (num_samples, p, num_classes).}
+\item{explanations}{A \code{torch::tensor} of shape (1, p, num_classes).}
 \item{p}{integer, the number of input features.}
-\item{predictions}{A \code{torch::tensor} of shape (num_samples, num_classes).}
+\item{predictions}{A \code{torch::tensor} of shape (1, num_classes).}
+\item{se}{A \code{torch::tensor} of shape (p, num_classes) containing standard errors (if uncertainty=TRUE).}
 }
 }
 \description{

@@ -45,23 +45,24 @@ library(torch)
 loaders <- get_dataloaders(Raisin_Dataset, train_proportion = 0.8, train_batch_size = 720, test_batch_size = 180)
 train_loader <- loaders$train_loader
 test_loader <- loaders$test_loader
-
 ```
 
 To initialize the SICNN, we need to define the type of problem and network dimension sizes.
 
 ```{r}
-problem <- 'binary classification'
-sizes <- c(7,5,5,1) # 7 input variables, two hidden layers of 5 neurons each, 1 output neuron.
-device <- 'cpu' # can also be mps or gpu.
+problem <- "binary classification"
+sizes <- c(7, 5, 5, 1) # 7 input variables, two hidden layers of 5 neurons each, 1 output neuron.
+device <- "cpu" # can also be mps or gpu.
 ```
 
 We define the core structural model using `SICNN_Net`.
 
 ```{r}
 torch_manual_seed(0)
-model_input_skip <- SICNN_Net(problem_type = problem, sizes = sizes, 
-                              input_skip = TRUE, device = device)
+model_input_skip <- SICNN_Net(
+  problem_type = problem, sizes = sizes,
+  input_skip = TRUE, device = device
+)
 ```
 
 To train the models, we apply `train_SICNN` which relies on an exponentially decaying smooth L0 surrogate to effectively drop inactive pathways.
@@ -70,30 +71,30 @@ To train the models, we apply `train_SICNN` which relies on an exponentially dec
 # Track the number of samples mapping to log(n) regularization
 n_train <- nrow(Raisin_Dataset) * 0.8
 results_input_skip <- suppressMessages(train_SICNN(
-    epochs = 5000, restarts = 1, SICNN = model_input_skip, 
-    lr = 0.01, train_dl = train_loader, device = device,
-    scheduler = "step", sch_step_size = 2000, n_train = n_train,
-    epsilon_1 = 1, epsilon_T = 1e-4, steps_T = 4000, sic_threshold = 0.5,
-    penalty = 15 * log(n_train)
+  epochs = 5000, restarts = 1, SICNN = model_input_skip,
+  lr = 0.01, train_dl = train_loader, device = device,
+  scheduler = "step", sch_step_size = 2000, n_train = n_train,
+  epsilon_1 = 1, epsilon_T = 1e-4, steps_T = 4000, sic_threshold = 0.5,
+  penalty = 15 * log(n_train)
 ))
 ```
 
 Evaluate structural performance and accuracy on validation samples natively:
 
 ```{r}
-validate_SICNN(SICNN = model_input_skip, num_samples = 1, test_dl = test_loader, device=device)
+validate_SICNN(SICNN = model_input_skip, num_samples = 1, test_dl = test_loader, device = device)
 ```
 
 Plot the global interconnected sparse structure of the active model pathways:
 
 ```{r}
-plot(model_input_skip, type = 'global', vertex_size = 13, edge_width = 0.6, label_size = 0.6)
+plot(model_input_skip, type = "global", vertex_size = 13, edge_width = 0.6, label_size = 0.6)
 ```
 
 This structural architecture reflects precisely which of the 7 initial parameters remain viable variables. We can also plot local interactions relative to one patient/run directly via input-skip activations:
 
 ```{r}
-x <- train_loader$dataset$tensors[[1]] 
-data <- x[42,] # Evaluate specific dataset slice dynamically
-plot(model_input_skip, type = 'local', data = data)
+x <- train_loader$dataset$tensors[[1]]
+data <- x[42, ] # Evaluate specific dataset slice dynamically
+plot(model_input_skip, type = "local", data = data)
 ```

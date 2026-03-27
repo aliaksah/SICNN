@@ -10,7 +10,10 @@
   inds = NULL,
   output_neuron = 1,
   num_data = 1,
-  num_samples = 10,
+  uncertainty = FALSE,
+  fisher_dataloader = NULL,
+  covariance_type = c("diagonal", "block-diagonal", "KFAC"),
+  use_pseudo_inverse = FALSE,
   ...
 )
 }
@@ -27,7 +30,9 @@ The latter can be any user-defined data.}
 
 \item{num_data}{integer, if no indices are chosen, the first \code{num_data} of \code{dataset} are automatically used for explanations.}
 
-\item{num_samples}{integer, how many samples to use for model averaging when sampling the weights in the active paths.}
+\item{uncertainty}{logical, whether to compute uncertainty using the Delta method.}
+
+\item{fisher_dataloader}{A \code{torch::dataloader} to compute the Fisher Information.}
 
 \item{...}{further arguments passed to or from other methods.}
 }
@@ -47,23 +52,24 @@ The contributions are found by taking the gradient wrt x.
 }
 \details{
 \itemize{
-\item If \code{num_data = 1}, confidence intervals are computed using model averaging over \code{num_samples} weight samples.
-\item If \code{num_data > 1}, confidence intervals are computed across the mean explanations for each sample.
+\item If \code{uncertainty = TRUE}, confidence intervals are computed using the Delta method (Frequentist).
+\item If \code{num_data > 1} and \code{uncertainty = TRUE}, confidence intervals incorporate both sampling variation across the dataset and estimation uncertainty (via the Delta method per sample).
+\item If \code{num_data > 1} and \code{uncertainty = FALSE}, confidence intervals are computed purely based on the empirical distribution of explanations across samples.
 \item The output is a data frame with row names as input variables
 (\code{x0}, \code{x1}, \code{x2}, ...) and columns giving mean and 95\% confidence intervals for each variable.
 }
 }
 \examples{
-\donttest{ 
-x<-torch::torch_randn(3,2) 
+\donttest{
+x <- torch::torch_randn(3, 2)
 b <- torch::torch_rand(2)
-y <- torch::torch_matmul(x,b)
-train_data <- torch::tensor_dataset(x,y)
-train_loader <- torch::dataloader(train_data,batch_size = 3,shuffle=FALSE)
-problem<-'regression'
-sizes <- c(2,1,1) 
+y <- torch::torch_matmul(x, b)
+train_data <- torch::tensor_dataset(x, y)
+train_loader <- torch::dataloader(train_data, batch_size = 3, shuffle = FALSE)
+problem <- "regression"
+sizes <- c(2, 1, 1)
 model <- SICNN_Net(problem, sizes, input_skip = TRUE)
 train_SICNN(epochs = 1, SICNN = model, lr = 0.01, train_dl = train_loader, n_train = 3)
-coef(model,dataset = x, num_data = 1)
+coef(model, dataset = x, num_data = 1)
 }
 }

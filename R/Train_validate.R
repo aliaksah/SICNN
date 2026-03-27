@@ -107,6 +107,7 @@ train_SICNN <- function(epochs,
   SICNN$sic_report_epsilon <- sic_report_epsilon
   SICNN$sic_report_threshold_type <- sic_threshold_type
   SICNN$sic_penalty <- sic_penalty
+  SICNN$n_train <- n_train
   opt <- torch::optim_adam(SICNN$parameters,lr = lr)
   if(! is.null(scheduler)){
     if(scheduler == 'step'){
@@ -322,12 +323,10 @@ train_SICNN <- function(epochs,
 
 #' @title Validate a trained SICNN model.
 #' @description Computes metrics on a validation dataset without computing gradients.
-#' Supports model averaging (recommended) by sampling from the variational posterior (\code{num_samples} > 1) 
-#' to improve predictions. Returns metrics for both the full model and the sparse model. 
+#' Returns metrics for both the full model and the sparse model. 
 #' @param SICNN An instance of a trained \code{SICNN_Net} to be validated.
-#' @param num_samples integer, the number of samples from the variational posterior to be used for model averaging.
-#' @param test_dl An instance of \code{torch::dataloader}, containing the validation data.
-#' @param device The device to perform validation on. Default is 'cpu'; other options include 'gpu' and 'mps'.
+#' @param test_dl A \code{torch::dataloader} to evaluate the model on.
+#' @param device character, either 'cpu', 'gpu' or 'mps'.
 #' @return A list containing the following elements:
 #'   \describe{
 #'     \item{accuracy_full_model}{Classification accuracy of the full (dense) model (if classification).}
@@ -337,12 +336,12 @@ train_SICNN <- function(epochs,
 #'     \item{density}{Proportion of weights with posterior inclusion probability > 0.5 in the whole network.}
 #'     \item{density_active_path}{Proportion of weights with inclusion probability > 0.5 after removing weights not in active paths.}
 #'   }     
+#' @param ... further arguments passed to or from other methods.
 #' @export
-validate_SICNN <- function(SICNN,num_samples,test_dl,device = 'cpu'){
+validate_SICNN <- function(SICNN, test_dl, device = 'cpu', ...){
   SICNN$eval()
   sparse_sic <- (!is.null(SICNN$criterion_trained) && SICNN$criterion_trained == "SIC")
   # Deterministic SIC: multiple samples are redundant.
-  if(sparse_sic){ num_samples <- 1 }
   corrects <- 0
   corrects_sparse <-0
   totals <- 0 
@@ -371,16 +370,9 @@ validate_SICNN <- function(SICNN,num_samples,test_dl,device = 'cpu'){
         target <- torch::torch_tensor(target,dtype = torch::torch_long())
         out_shape <- max(target)$item()
       }
-      outputs <- torch::torch_zeros(num_samples,dim(b[[1]])[1],out_shape)$to(device=device)
-      output_mpm <- torch::torch_zeros_like(outputs)
-      for(i in 1:num_samples){
-        data <- b[[1]]$to(device = device)
-        outputs[i]<- SICNN(data,sparse=FALSE)
-        output_mpm[i] <- SICNN(data,sparse=TRUE)
-        
-      }
-      out_full <-outputs$mean(1) #average over num_samples dimension
-      out_mpm <-output_mpm$mean(1)
+      data <- b[[1]]$to(device = device)
+      out_full <- SICNN(data, sparse = FALSE)
+      out_mpm  <- SICNN(data, sparse = TRUE)
       
       if(SICNN$problem_type == 'multiclass classification' | SICNN$problem_type == 'MNIST'){
         prediction <-max.col(out_full)

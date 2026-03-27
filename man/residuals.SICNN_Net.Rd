@@ -20,14 +20,14 @@ A numeric vector of residuals (\code{y_true - y_predicted})
 Residuals from an object of the \code{SICNN_Net} class.
 }
 \examples{
-\donttest{ 
-x<-torch::torch_randn(3,2) 
+\donttest{
+x <- torch::torch_randn(3, 2)
 b <- torch::torch_rand(2)
-y <- torch::torch_matmul(x,b)
-train_data <- torch::tensor_dataset(x,y)
-train_loader <- torch::dataloader(train_data,batch_size = 3,shuffle=FALSE)
-problem<-'regression'
-sizes <- c(2,1,1) 
+y <- torch::torch_matmul(x, b)
+train_data <- torch::tensor_dataset(x, y)
+train_loader <- torch::dataloader(train_data, batch_size = 3, shuffle = FALSE)
+problem <- "regression"
+sizes <- c(2, 1, 1)
 model <- SICNN_Net(problem, sizes, input_skip = TRUE)
 train_SICNN(epochs = 1, SICNN = model, lr = 0.01, train_dl = train_loader, n_train = 3)
 residuals(model)

@@ -1,16 +1,34 @@
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
 # SICNN
 
 <!-- badges: start -->
 
-[![](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental) [![](https://img.shields.io/github/last-commit/aliaksah/SICNN.svg)](https://github.com/aliaksah/SICNN/commits/main) [![](https://img.shields.io/github/languages/code-size/aliaksah/SICNN.svg)](https://github.com/aliaksah/SICNN) [![R-CMD-check](https://github.com/aliaksah/SICNN/workflows/R-CMD-check/badge.svg)](https://github.com/aliaksah/SICNN/actions) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+[![](https://img.shields.io/github/last-commit/aliaksah/SICNN.svg)](https://github.com/aliaksah/SICNN/commits/main)
+[![](https://img.shields.io/github/languages/code-size/aliaksah/SICNN.svg)](https://github.com/aliaksah/SICNN)
+[![R-CMD-check](https://github.com/aliaksah/SICNN/workflows/R-CMD-check/badge.svg)](https://github.com/aliaksah/SICNN/actions)
+[![License:
+MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 <!-- badges: end -->
 
-The goal of SICNN is to implement Smooth Information Criterion Neural Networks in R, using the torch package. SICNN is a scalable architecture designed exclusively for seamless, continuous parameter space pruning. Evolved from Latent Binary Bayesian Neural Networks (LBBNNs) described in Hubin and Storvik (2024) [doi:10.3390/math12060788](https://doi.org/10.3390/math12060788) and implemented in the [LBBNN](https://CRAN.R-project.org/package=LBBNN) R package, SICNN operates dynamically and directly on model weight structures by natively leveraging a continuous smooth approximation of the $L_0$ norm.
+The goal of SICNN is to implement Smooth Information Criterion Neural
+Networks in R, using the torch package. SICNN is a scalable architecture
+designed exclusively for seamless, continuous parameter space pruning.
+Evolved from Latent Binary Bayesian Neural Networks (LBBNNs) described
+in Hubin and Storvik (2024)
+[doi:10.3390/math12060788](https://doi.org/10.3390/math12060788) and
+implemented in the [LBBNN](https://CRAN.R-project.org/package=LBBNN) R
+package, SICNN operates dynamically and directly on model weight
+structures by natively leveraging a continuous smooth approximation of
+the $L_0$ norm.
 
 ## Installation
 
-You can install the development version of SICNN from [GitHub](https://github.com/aliaksah/SICNN) with:
+You can install the development version of SICNN from
+[GitHub](https://github.com/aliaksah/SICNN) with:
 
 ``` r
 # install.packages("pak")
@@ -19,9 +37,10 @@ pak::pak("aliaksah/SICNN")
 
 ## Example
 
-This example demonstrates how to implement a SICNN model on the raisin dataset.
+This example demonstrates how to implement a SICNN model on the raisin
+dataset.
 
-```r
+``` r
 library(SICNN)
 library(ggplot2)
 library(torch)
@@ -32,52 +51,102 @@ train_loader <- loaders$train_loader
 test_loader <- loaders$test_loader
 ```
 
-To initialize the SICNN, we need to define the type of problem and network dimension sizes.
+To initialize the SICNN, we need to define the type of problem and
+network dimension sizes.
 
-```r
-problem <- 'binary classification'
-sizes <- c(7,5,5,1) # 7 input variables, two hidden layers of 5 neurons each, 1 output neuron.
-device <- 'cpu' # can also be mps or gpu.
+``` r
+problem <- "binary classification"
+sizes <- c(7, 5, 5, 1) # 7 input variables, two hidden layers of 5 neurons each, 1 output neuron.
+device <- "cpu" # can also be mps or gpu.
 ```
 
 We define the core structural model using `SICNN_Net`.
 
-```r
+``` r
 torch_manual_seed(0)
-model_input_skip <- SICNN_Net(problem_type = problem, sizes = sizes, 
-                              input_skip = TRUE, device = device)
+model_input_skip <- SICNN_Net(
+  problem_type = problem, sizes = sizes,
+  input_skip = TRUE, device = device
+)
 ```
 
-To train the models, we apply `train_SICNN` which relies on an exponentially decaying smooth L0 surrogate to effectively drop inactive pathways.
+To train the models, we apply `train_SICNN` which relies on an
+exponentially decaying smooth L0 surrogate to effectively drop inactive
+pathways.
 
-```r
+``` r
 # Track the number of samples mapping to log(n) regularization
 n_train <- nrow(Raisin_Dataset) * 0.8
 results_input_skip <- suppressMessages(train_SICNN(
-    epochs = 5000, restarts = 1, SICNN = model_input_skip, 
-    lr = 0.01, train_dl = train_loader, device = device,
-    scheduler = "step", sch_step_size = 2000, n_train = n_train,
-    epsilon_1 = 1, epsilon_T = 1e-4, steps_T = 4000, sic_threshold = 0.5,
-    penalty = 15 * log(n_train)
+  epochs = 5000, restarts = 1, SICNN = model_input_skip,
+  lr = 0.01, train_dl = train_loader, device = device,
+  scheduler = "step", sch_step_size = 2000, n_train = n_train,
+  epsilon_1 = 1, epsilon_T = 1e-4, steps_T = 4000, sic_threshold = 0.5,
+  penalty = 15 * log(n_train)
 ))
 ```
 
-Evaluate structural performance and accuracy on validation samples natively:
+Evaluate structural performance and accuracy on validation samples
+natively:
 
-```r
-validate_SICNN(SICNN = model_input_skip, num_samples = 1, test_dl = test_loader, device=device)
+``` r
+validate_SICNN(SICNN = model_input_skip, num_samples = 1, test_dl = test_loader, device = device)
+#> $accuracy_full_model
+#> [1] 0.8833333
+#> 
+#> $accuracy_sparse
+#> [1] 0.8833333
+#> 
+#> $density
+#> [1] 0.009345794
+#> 
+#> $density_active_path
+#> [1] 0.009345794
+#> 
+#> $sparsity_pct
+#> [1] 99.06542
+#> 
+#> $active_weights
+#> [1] 1
+#> 
+#> $removed_weights
+#> [1] 106
+#> 
+#> $total_weights
+#> [1] 107
 ```
 
-Plot the global interconnected sparse structure of the active model pathways:
+Plot the global interconnected sparse structure of the active model
+pathways:
 
-```r
-plot(model_input_skip, type = 'global', vertex_size = 13, edge_width = 0.6, label_size = 0.6)
+``` r
+plot(model_input_skip, type = "global", vertex_size = 13, edge_width = 0.6, label_size = 0.6)
 ```
 
-This structural architecture reflects precisely which of the 7 initial parameters remain viable variables. We can also plot local interactions relative to one patient/run directly via input-skip activations:
+<img src="man/figures/README-unnamed-chunk-6-1.png" width="100%" />
 
-```r
-x <- train_loader$dataset$tensors[[1]] 
-data <- x[42,] # Evaluate specific dataset slice dynamically
-plot(model_input_skip, type = 'local', data = data)
+This structural architecture reflects precisely which of the 7 initial
+parameters remain viable variables. We can also plot local interactions
+relative to one patient/run directly via input-skip activations:
+
+``` r
+x <- train_loader$dataset$tensors[[1]]
+data <- x[42, ] # Evaluate specific dataset slice dynamically
+plot(model_input_skip, type = "local", data = data)
+```
+
+<img src="man/figures/README-unnamed-chunk-7-1.png" width="100%" />
+
+## Uncertainty Quantification for Local Explanations
+
+SICNN supports LBBNN-style uncertainty for local explanations using the Delta method. This allows you to compute confidence intervals for the contribution of each feature to a specific prediction by approximating the weight covariance matrix via the Fisher Information (diagonal or block-diagonal).
+
+``` r
+# Compute local explanation with uncertainty using block-diagonal Fisher Information on the test set
+plot(model_input_skip, 
+     type = "local", 
+     data = data, 
+     uncertainty = TRUE, 
+     fisher_dataloader = test_loader,
+     covariance_type = "block-diagonal")
 ```

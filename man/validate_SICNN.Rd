@@ -4,16 +4,16 @@
 \alias{validate_SICNN}
 \title{Validate a trained SICNN model.}
 \usage{
-validate_SICNN(SICNN, num_samples, test_dl, device = "cpu")
+validate_SICNN(SICNN, test_dl, device = "cpu", ...)
 }
 \arguments{
 \item{SICNN}{An instance of a trained \code{SICNN_Net} to be validated.}
 
-\item{num_samples}{integer, the number of samples from the variational posterior to be used for model averaging.}
+\item{test_dl}{A \code{torch::dataloader} to evaluate the model on.}
 
-\item{test_dl}{An instance of \code{torch::dataloader}, containing the validation data.}
+\item{device}{character, either 'cpu', 'gpu' or 'mps'.}
 
-\item{device}{The device to perform validation on. Default is 'cpu'; other options include 'gpu' and 'mps'.}
+\item{...}{further arguments passed to or from other methods.}
 }
 \value{
 A list containing the following elements:
@@ -28,6 +28,5 @@ A list containing the following elements:
 }
 \description{
 Computes metrics on a validation dataset without computing gradients.
-Supports model averaging (recommended) by sampling from the variational posterior (\code{num_samples} > 1)
-to improve predictions. Returns metrics for both the full model and the sparse model.
+Returns metrics for both the full model and the sparse model.
 }
