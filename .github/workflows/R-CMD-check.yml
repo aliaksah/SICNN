@@ -37,10 +37,30 @@ jobs:
           extra-packages: any::rcmdcheck
           needs: check
 
-      - name: Install torch backend
+      - name: Install torch on Windows from pre-built binary repo
+        if: runner.os == 'Windows'
+        shell: Rscript {0}
+        env:
+          CUDA: cpu
+          TORCH_INSTALL_DEBUG: 1
         run: |
-          Rscript -e 'if (!requireNamespace("torch", quietly=TRUE)) install.packages("torch", repos="https://cloud.r-project.org")'
-          Rscript -e 'if (requireNamespace("torch", quietly=TRUE)) torch::install_torch()'
+          options(timeout = 600)
+
+          torch_version <- available.packages(
+            repos = "https://cloud.r-project.org"
+          )["torch", "Version"]
+
+          options(repos = c(
+            torch = sprintf(
+              "https://torch-cdn.mlverse.org/packages/cpu/%s/",
+              torch_version
+            ),
+            CRAN = "https://cloud.r-project.org"
+          ))
+
+          install.packages("torch", type = "binary")
+          library(torch)
+          print(torch_tensor(1))
 
       - name: Checking package
         uses: r-lib/actions/check-r-package@v2
