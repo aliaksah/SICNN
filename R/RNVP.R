@@ -53,7 +53,7 @@ MLP <- torch::nn_module(
 #'   \item{\code{log_det()}}{A scalar \code{torch::torch_tensor} giving the log-determinant of the Jacobian of the transformation.}
 #' }
 #' @examples
-#' \donttest{
+#' \dontrun{
 #' z <- torch::torch_rand(200)
 #' layer <- RNVP_layer(c(200,50,100))
 #' out <- layer(z)
