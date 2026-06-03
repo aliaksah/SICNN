@@ -39,7 +39,7 @@ all the layers in the module. Also computes the log-determinant of the Jacobian 
 transformation, which is just the sum of log-determinant of the independent layers.
 }
 \examples{
-\donttest{
+\dontrun{
 flow <- FLOW(c(200,100,100),transform_type = 'RNVP',num_transforms = 3)
 flow$to(device = 'cpu')
 x <- torch::torch_rand(200,device = 'cpu')
