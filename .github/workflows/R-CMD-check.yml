@@ -5,21 +5,27 @@ jobs:
   R-CMD-check:
     runs-on: ${{ matrix.config.os }}
     name: ${{ matrix.config.os }} (R ${{ matrix.config.r }})
+
     strategy:
       fail-fast: false
       matrix:
         config:
-          - {os: windows-latest, r: 'release'}
+          # Use oldrel-1 on Windows for now because torch's prebuilt Windows
+          # binary repo is not available for the current R release path in your log.
+          - {os: windows-latest, r: 'oldrel-1'}
+
           - {os: macOS-latest, r: 'release'}
           - {os: ubuntu-latest, r: 'release'}
           - {os: ubuntu-latest, r: 'devel', http-user-agent: 'release'}
           - {os: ubuntu-latest, r: 'oldrel-1'}
+
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
+
     steps:
       - name: Checking out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setting up pandoc
         uses: r-lib/actions/setup-pandoc@v2
@@ -30,12 +36,6 @@ jobs:
           r-version: ${{ matrix.config.r }}
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
-
-      - name: Querying dependencies
-        uses: r-lib/actions/setup-r-dependencies@v2
-        with:
-          extra-packages: any::rcmdcheck
-          needs: check
 
       - name: Install torch on Windows from pre-built binary repo
         if: runner.os == 'Windows'
@@ -59,11 +59,17 @@ jobs:
           ))
 
           install.packages("torch", type = "binary")
+
           library(torch)
-          print(torch_tensor(1))
+          print(torch::torch_tensor(1))
+
+      - name: Querying dependencies
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::rcmdcheck
+          needs: check
 
       - name: Checking package
         uses: r-lib/actions/check-r-package@v2
         with:
           upload-snapshots: true
-
