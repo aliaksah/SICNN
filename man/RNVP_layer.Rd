@@ -30,7 +30,7 @@ This implementation uses the numerically stable updates introduced by IAF:
 https://arxiv.org/abs/1606.04934
 }
 \examples{
-\donttest{
+\dontrun{
 z <- torch::torch_rand(200)
 layer <- RNVP_layer(c(200,50,100))
 out <- layer(z)
