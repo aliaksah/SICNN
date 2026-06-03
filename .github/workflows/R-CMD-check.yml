@@ -10,10 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          # Use oldrel-1 on Windows for now because torch's prebuilt Windows
-          # binary repo is not available for the current R release path in your log.
           - {os: windows-latest, r: 'oldrel-1'}
-
           - {os: macOS-latest, r: 'release'}
           - {os: ubuntu-latest, r: 'release'}
           - {os: ubuntu-latest, r: 'devel', http-user-agent: 'release'}
@@ -22,6 +19,9 @@ jobs:
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
+      CUDA: cpu
+      TORCH_INSTALL: 1
+      TORCH_INSTALL_DEBUG: 1
 
     steps:
       - name: Checking out the repository
@@ -37,37 +37,26 @@ jobs:
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
 
-      - name: Install torch on Windows from pre-built binary repo
-        if: runner.os == 'Windows'
-        shell: Rscript {0}
-        env:
-          CUDA: cpu
-          TORCH_INSTALL_DEBUG: 1
-        run: |
-          options(timeout = 600)
-
-          torch_version <- available.packages(
-            repos = "https://cloud.r-project.org"
-          )["torch", "Version"]
-
-          options(repos = c(
-            torch = sprintf(
-              "https://torch-cdn.mlverse.org/packages/cpu/%s/",
-              torch_version
-            ),
-            CRAN = "https://cloud.r-project.org"
-          ))
-
-          install.packages("torch", type = "binary")
-
-          library(torch)
-          print(torch::torch_tensor(1))
-
       - name: Querying dependencies
         uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::rcmdcheck
+          extra-packages: any::rcmdcheck, any::torch
           needs: check
+
+      - name: Install and verify torch backend
+        shell: Rscript {0}
+        run: |
+          options(timeout = 1200)
+
+          if (!requireNamespace("torch", quietly = TRUE)) {
+            install.packages("torch", repos = "https://cloud.r-project.org")
+          }
+
+          torch::install_torch(timeout = 1200)
+
+          library(torch)
+          x <- torch::torch_tensor(1, device = "cpu")
+          print(x)
 
       - name: Checking package
         uses: r-lib/actions/check-r-package@v2
