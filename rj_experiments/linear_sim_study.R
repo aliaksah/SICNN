@@ -1,4 +1,4 @@
-
+library(torch)
 library(dplyr)
 library(tidyr)
 library(purrr)
@@ -20,8 +20,8 @@ generate_linear_data <- function(n, p, snr, beta_true) {
 
 # Simulation settings
 ns_list <- c(1000)
-snrs_list <- c(10)
-n_reps <- 2
+snrs_list <- c(3, 5, 10)
+n_reps <- 3
 p <- 15
 beta_true <- c(0.6, -0.4, 0.5, rep(0, p - 3))
 
@@ -120,6 +120,10 @@ for (i in 1:nrow(experiments)) {
   tpr <- sum(selected[true_vars]) / length(true_vars)
   fpr <- sum(selected[false_vars]) / length(false_vars)
 
+  # Get the number of active weights (non-zero weights) on the active paths
+  sic_counts <- model$sic_weight_counts(epsilon = 1e-5, threshold = 0.5, active_paths = TRUE)
+  active_weights <- as.numeric(sic_counts["active"])
+
   # Store results
   results[[i]] <- tibble(
     n = exp$n,
@@ -128,7 +132,8 @@ for (i in 1:nrow(experiments)) {
     test_mse = test_mse,
     coef_error = coef_error,
     tpr = tpr,
-    fpr = fpr
+    fpr = fpr,
+    active_weights = active_weights
   )
 }
 
@@ -143,10 +148,12 @@ summary_table <- final_results %>%
     mean_coef_err = mean(coef_error),
     mean_tpr = mean(tpr),
     mean_fpr = mean(fpr),
+    mean_active_weights = mean(active_weights),
+    sd_active_weights = sd(active_weights),
     .groups = "drop"
   )
 
-print(summary_table)
+print(as.data.frame(summary_table))
 
 # Plotting the recovery for the last run if you want to see it visually
 # plot(model)

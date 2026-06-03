@@ -17,6 +17,7 @@ library(Matrix)
 #' @param fisher_dataloader A \code{torch::dataloader} to compute the Fisher Information. If NULL and uncertainty is TRUE, it defaults to training data if available.
 #' @param covariance_type character, the type of Fisher Information approximation: \code{"diagonal"}, \code{"block-diagonal"}, or \code{"KFAC"}.
 #' @param use_pseudo_inverse logical, whether to use the pseudo-inverse if the Fisher Information is singular.
+#' @param fisher A precomputed Fisher Information list structure, or NULL.
 #' @param ... further arguments (e.g., deprecated num_samples periodically used in old scripts).
 #' @return A list with the following elements:
 #'   \describe{

@@ -17,8 +17,8 @@ generate_linear_data <- function(n, p, sigma2) {
 
 # Simulation settings
 ns_list <- c(1000)
-sigma2_list <- c(1)
-n_reps <- 2
+sigma2_list <- c(1, 5, 10)
+n_reps <- 3
 p <- 15
 
 results <- list()

@@ -217,9 +217,10 @@ residuals.SICNN_Net <- function(object, type = c("response"), ...) {
 #' @param inds Optional integer vector of row indices in the dataset to compute explanations for.
 #' @param output_neuron integer, which output neuron to explain (default = 1).
 #' @param num_data integer, if no indices are chosen, the first \code{num_data} of \code{dataset} are automatically used for explanations.
-#' @param num_data integer, if no indices are chosen, the first \code{num_data} of \code{dataset} are automatically used for explanations.
 #' @param uncertainty logical, whether to compute uncertainty using the Delta method.
 #' @param fisher_dataloader A \code{torch::dataloader} to compute the Fisher Information.
+#' @param covariance_type character, the type of Fisher Information approximation: \code{"diagonal"}, \code{"block-diagonal"}, or \code{"KFAC"}.
+#' @param use_pseudo_inverse logical, whether to use the pseudo-inverse if the Fisher Information is singular.
 #' @param ... further arguments passed to or from other methods.
 #' @details
 #' \itemize{
@@ -526,7 +527,6 @@ print.SICNN_Net <- function(x, ...) {
 #' @param x An instance of \code{SICNN_Net}.
 #' @param type Either \code{"global"} or \code{"local"}.
 #' @param data If local is chosen, one sample must be provided to obtain the explanation. Must be a \code{torch::torch_tensor} of shape \code{(1,p)}.
-#' @param data If local is chosen, one sample must be provided to obtain the explanation. Must be a \code{torch::torch_tensor} of shape \code{(1,p)}.
 #' @param uncertainty logical, whether to include Delta method uncertainty.
 #' @param fisher_dataloader A \code{torch::dataloader} to compute the Fisher Information.
 #' @param covariance_type character, the type of Fisher Information approximation: \code{"diagonal"}, \code{"block-diagonal"}, or \code{"KFAC"}.
@@ -534,7 +534,10 @@ print.SICNN_Net <- function(x, ...) {
 #' @param ... further arguments passed to or from other methods.
 #' @return No return value. Called for its side effects of producing a plot.
 #' @export
-plot.SICNN_Net <- function(x, type = c("global", "local"), data = NULL, ...) {
+plot.SICNN_Net <- function(x, type = c("global", "local"), data = NULL,
+                           uncertainty = FALSE, fisher_dataloader = NULL,
+                           covariance_type = c("diagonal", "block-diagonal", "KFAC"),
+                           use_pseudo_inverse = FALSE, ...) {
   if (x$input_skip == FALSE) (stop("Plotting currently only implemented for input-skip"))
   if (x$computed_paths == FALSE) {
     if (x$input_skip) {
@@ -556,6 +559,10 @@ plot.SICNN_Net <- function(x, type = c("global", "local"), data = NULL, ...) {
     SICNN_plot(x, ...)
   } else {
     if (is.null(data)) stop("data must contain a sample to explain")
-    plot_local_explanations_gradient(x, input_data = data, device = x$device, ...)
+    plot_local_explanations_gradient(x, input_data = data, device = x$device,
+                                     uncertainty = uncertainty,
+                                     fisher_dataloader = fisher_dataloader,
+                                     covariance_type = covariance_type,
+                                     use_pseudo_inverse = use_pseudo_inverse, ...)
   }
 }

@@ -39,6 +39,8 @@ if FALSE, just removes zero covariates.}
 
 \item{use_pseudo_inverse}{logical, whether to use the pseudo-inverse if the Fisher Information is singular.}
 
+\item{fisher}{A precomputed Fisher Information list structure, or NULL.}
+
 \item{...}{further arguments (e.g., deprecated num_samples periodically used in old scripts).}
 }
 \value{

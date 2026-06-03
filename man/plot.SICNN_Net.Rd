@@ -4,7 +4,16 @@
 \alias{plot.SICNN_Net}
 \title{Plot \code{SICNN_Net} objects}
 \usage{
-\method{plot}{SICNN_Net}(x, type = c("global", "local"), data = NULL, ...)
+\method{plot}{SICNN_Net}(
+  x,
+  type = c("global", "local"),
+  data = NULL,
+  uncertainty = FALSE,
+  fisher_dataloader = NULL,
+  covariance_type = c("diagonal", "block-diagonal", "KFAC"),
+  use_pseudo_inverse = FALSE,
+  ...
+)
 }
 \arguments{
 \item{x}{An instance of \code{SICNN_Net}.}
@@ -13,8 +22,6 @@
 
 \item{data}{If local is chosen, one sample must be provided to obtain the explanation. Must be a \code{torch::torch_tensor} of shape \code{(1,p)}.}
 
-\item{...}{further arguments passed to or from other methods.}
-
 \item{uncertainty}{logical, whether to include Delta method uncertainty.}
 
 \item{fisher_dataloader}{A \code{torch::dataloader} to compute the Fisher Information.}
@@ -22,6 +29,8 @@
 \item{covariance_type}{character, the type of Fisher Information approximation: \code{"diagonal"}, \code{"block-diagonal"}, or \code{"KFAC"}.}
 
 \item{use_pseudo_inverse}{logical, whether to use the pseudo-inverse if the Fisher Information is singular.}
+
+\item{...}{further arguments passed to or from other methods.}
 }
 \value{
 No return value. Called for its side effects of producing a plot.

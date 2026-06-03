@@ -34,6 +34,10 @@ The latter can be any user-defined data.}
 
 \item{fisher_dataloader}{A \code{torch::dataloader} to compute the Fisher Information.}
 
+\item{covariance_type}{character, the type of Fisher Information approximation: \code{"diagonal"}, \code{"block-diagonal"}, or \code{"KFAC"}.}
+
+\item{use_pseudo_inverse}{logical, whether to use the pseudo-inverse if the Fisher Information is singular.}
+
 \item{...}{further arguments passed to or from other methods.}
 }
 \value{

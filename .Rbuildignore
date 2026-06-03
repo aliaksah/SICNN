@@ -17,3 +17,11 @@
 ^cran-comments\.md$
 ^rj_experiments$
 ^paper$
+^_test_block_diagonal\.R$
+^run_tutorial\.R$
+^scratch\.R$
+^scratch2\.R$
+^tuning\.R$
+^tuning_final\.R$
+^tuning_refined\.R$
+^uci_experiments$
