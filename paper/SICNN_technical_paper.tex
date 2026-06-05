@@ -4,7 +4,7 @@
 \usepackage{graphicx}
 \usepackage{hyperref}
 
-\title{SICNN: Smooth Information Criterion Neural Networks for Scalable and Exact Feature Selection}
+\title{SICNN: Smooth Information Criterion Neural Networks for Sparse Neural Modeling}
 \author{Aliaksandr Hubin, Andrew McInerney}
 \date{\today}
 
@@ -12,113 +12,174 @@
 \maketitle
 
 \begin{abstract}
-We introduce Smooth Information Criterion Neural Networks (SICNN), a scalable and standalone architecture designed exclusively for seamless, continuous parameter space pruning. Evolved from Latent Binary Bayesian Neural Networks (LBBNN), SICNN operates dynamically and directly on model weight structures $W$. By natively leveraging a continuous smooth approximation of the $L_0$ norm (SIC constraint) without relying on variational inclusion abstractions ($\alpha$), SICNN captures and exploits the fundamental topological capacities of deep architectures, efficiently solving the discrete selection problem natively in parameter space.
+Smooth Information Criterion Neural Networks (SICNNs) provide a deterministic, smooth-$L_0$ approach to sparse neural network training in \texttt{torch}. The current implementation optimizes neural weight means directly and adds a Smooth Information Criterion (SIC) penalty to the data-fit loss. Sparsity is induced through the surrogate
+\[
+\phi_\epsilon(w)=\frac{w^2}{w^2+\epsilon^2},
+\]
+with an epsilon-telescope that progressively sharpens the approximation to an $L_0$ count. The package supports feed-forward networks with optional input-skip connections for feature selection, convolutional layers with the same smooth weight penalty, sparse-path inference for feed-forward architectures, local gradient explanations, and frequentist uncertainty approximations for those explanations. The method is best viewed as a BIC-calibrated neural pruning framework rather than as a direct application of classical BIC theory to a regular parametric model.
 \end{abstract}
 
 \section{Introduction}
-Modern high-dimensional datasets require parameter pruning methods to distill dense black-box neural networks into compact, explainable structures. While Variational inference frameworks like existing LBBNN configurations utilize random stochastic estimators and the local reparameterization trick to deduce latent inclusion probabilities ($\alpha$), they mandate dual-parameter optimizations and scale exponentially with large parameter landscapes, severely complicating learning stability. To resolve computational complexity dependencies directly, SICNN has been explicitly untethered from Bayesian inclusion indicators. SICNN natively optimizes model weights by functionally penalizing nonzero states using a Continuous Bayesian Information Criterion.
+Modern high-dimensional datasets often require models that are predictive while still revealing which inputs and pathways are being used. Classical neural networks are typically dense and difficult to interpret, while exact subset selection over neural subnetworks is combinatorial. SICNN addresses this by replacing discrete inclusion indicators with a differentiable approximation to the number of nonzero weights. The resulting objective can be optimized with standard gradient-based tools while encouraging weights to collapse toward zero.
 
-\section{Methodology}
-\subsection{The Smooth Information Criterion}
-Following O'Neill and Burke (2023), the SIC is defined as a penalized log-likelihood:
+The package is related historically to Latent Binary Bayesian Neural Networks (LBBNNs), but the current \texttt{train\_SICNN()} implementation is deterministic and SIC-based. It does not expose a variational-inclusion training criterion or a KL-divergence objective. Instead, it stores trainable weight means in \texttt{SICNN\_Linear} and \texttt{SICNN\_Conv2d} modules, applies the smooth $L_0$ penalty to those weight tensors, and then derives sparse inference paths by thresholding the trained weights.
+
+\section{Current Implementation}
+\subsection{Network Classes}
+The main feed-forward model is \texttt{SICNN\_Net}. For layer sizes
+\[
+(p,h_1,\ldots,h_L,o),
+\]
+the model creates \texttt{SICNN\_Linear} layers followed by an output layer. When \texttt{input\_skip = TRUE}, the original input vector is concatenated into every hidden layer after the first and also into the output layer. These skip connections allow the final sparse graph to represent both direct effects and hidden nonlinear transformations of the input features.
+
+The package also includes \texttt{SICNN\_Conv2d} and a simple \texttt{SICNN\_ConvNet} wrapper for image-style classification. Convolutional layers use the same trainable \texttt{weight\_mean} tensors and the same smooth $L_0$ penalty. At present, active-path extraction is implemented for feed-forward \texttt{SICNN\_Net} models; the convolutional wrapper supports sparse forward passes and SIC weight counts, but its active-path density methods return \texttt{NA} and its path-computation methods are stubs.
+
+\subsection{The Smooth Information Criterion Penalty}
+Following O'Neill and Burke (2023), the implementation uses the smooth surrogate
 \begin{equation}
-\text{SIC}(\theta, \epsilon) = \ell(\theta) - \frac{\lambda}{2} \|\theta\|_{0,\epsilon}
+\phi_\epsilon(w_k) = \frac{w_k^2}{w_k^2+\epsilon^2},
 \end{equation}
-where $\ell(\theta)$ is the log-likelihood, $\lambda = \log(n)$ for BIC-type selection, and $\|\theta\|_{0,\epsilon} = \sum_{k=1}^K \phi_\epsilon(\theta_k)$ is the smooth $L_0$ surrogate count of effective parameters. The smooth approximation function is:
+which converges pointwise to $\mathbb{1}(w_k \neq 0)$ as $\epsilon \to 0$. The smooth parameter count is
 \begin{equation}
-\phi_\epsilon(w_k) = \frac{w_k^2}{w_k^2 + \epsilon^2}
+k_\epsilon(W)=\sum_{k=1}^K \phi_\epsilon(w_k),
 \end{equation}
-which satisfies $\phi_\epsilon(w) \to \mathbb{1}(w \neq 0)$ as $\epsilon \to 0$.
+where the sum currently ranges over the trainable weight matrices/tensors in the hidden and output layers. Bias parameters can be present in the model, but they are not included in \texttt{smooth\_param\_count()}, \texttt{sic\_density()}, or \texttt{sic\_weight\_counts()}.
 
-In practice, SICNN minimizes the negative SIC on the $-2\ell$ scale. The per-batch training objective scales the data loss to the full-sample level:
+The default penalty coefficient is
 \begin{equation}
-\mathcal{L}_{batch} = \frac{n}{m} \cdot s \cdot \mathcal{L}_{data}^{(batch)} + \lambda \sum_{k=1}^K \phi_\epsilon(w_k)
+\lambda = \log(n_{\mathrm{train}}),
 \end{equation}
-where $m$ is the mini-batch size, $n$ is the full sample size, $\lambda = \log(n)$ by default, and $s$ is a likelihood scaling factor: $s=1$ for Gaussian regression (since MSE with {\tt reduction='sum'} already gives $-2\ell$), and $s=2$ for classification losses (BCE/NLL, which give $-\ell$). This ensures each per-batch gradient is an unbiased estimate of the full-sample SIC gradient.
-
-Applying gradient-based optimizers (e.g., Adam), the gradient of $\phi_\epsilon$ with respect to $w$ is:
+although users may provide any positive scalar through the \texttt{penalty} argument. Thus the structural term in training is
 \begin{equation}
-\frac{\partial \phi_\epsilon}{\partial w} = \frac{2w\epsilon^2}{(w^2 + \epsilon^2)^2}
+\lambda k_\epsilon(W).
 \end{equation}
-This gradient naturally forces small weights toward zero as $\epsilon$ decreases, while leaving large weights unaffected. The $\epsilon$-telescope of O'Neill and Burke (2023) schedules $\epsilon$ along an exponential decay:
+
+\subsection{Training Objective}
+The actual training objective used in \texttt{train\_SICNN()} is
 \begin{equation}
-\epsilon_t = \epsilon_1 \left(\frac{\epsilon_T}{\epsilon_1}\right)^{t/(T-1)}, \quad t = 0, \ldots, T-1
+\mathcal{L}_{\mathrm{train}}(W;\epsilon)
+= \mathcal{L}_{\mathrm{data,scaled}}(W) + \lambda k_\epsilon(W).
 \end{equation}
-from an initial $\epsilon_1$ (e.g., 10) to a final $\epsilon_T$ (e.g., $10^{-5}$), progressively sharpening the $L_0$ approximation.
-
-\subsection{Multi-Restart Optimization}
-Unlike stochastic variational gating, the SIC landscape contains multiple local minima corresponding to different sparse subnetwork configurations. To explore this landscape, SICNN employs systematic random restarts $r = 1, \ldots, R$, each initialized at a different sparsity level $p_r \in \{0.01, \ldots, 0.99\}$:
+For regression, \texttt{torch::nn\_mse\_loss(reduction="sum")} is first computed on the mini-batch, and the implementation uses a profile-Gaussian BIC-style scaling
 \begin{equation}
-W^{(r)}_{init} = W_{dense} \cdot \mathbf{1}_{(U(0, 1) < p_r)}
+\mathcal{L}_{\mathrm{data,scaled}}
+= n_{\mathrm{train}}\log\left(\frac{\mathrm{RSS}_{\mathrm{batch}}}{m}+10^{-12}\right),
 \end{equation}
-The best model across all restarts is selected by the final SIC value, ensuring convergence to a globally favorable sparse solution.
-
-\section{Theoretical Properties: Model Selection Consistency}
-A critical property of the Smooth Information Criterion (SIC) is its asymptotic relationship with the classical Bayesian Information Criterion (BIC), which is known to be model selection consistent. Let $\mathcal{M}$ be the set of candidate models (paths through the network), and $M_0 \in \mathcal{M}$ be the true underlying sparse model.
-
-A criterion is consistent if the probability of selecting the true model $P(\hat{M} = M_0) \to 1$ as $n \to \infty$. Following the derivation in O'Neill and Burke (2023), consider the objective function:
+where $m$ is the mini-batch size. For binary and multiclass classification, the implementation uses summed BCE or NLL loss and rescales it to the nominal training-sample size:
 \begin{equation}
-SIC_\epsilon(w) = -2\ell(w) + \lambda \sum_{j=1}^k \phi_\epsilon(w_j), \quad \phi_\epsilon(w) = \frac{w^2}{w^2 + \epsilon^2}
+\mathcal{L}_{\mathrm{data,scaled}}
+= \frac{n_{\mathrm{train}}}{m}\mathcal{L}_{\mathrm{batch}}.
 \end{equation}
-where $\lambda$ is the penalty parameter (e.g., $\log(n)$ for BIC-equivalence). As $\epsilon \to 0$, the surrogate function $\phi_\epsilon(w)$ converges point-wise to the $L_0$ indicator $\mathbf{1}(w \neq 0)$. Consequently:
+This classification objective is on the negative-log-likelihood scale used by \texttt{torch}; if one wants the literal classical $-2\ell+\log(n)k$ scale, the factor of two can be absorbed into the penalty calibration.
+
+The gradient of the smooth penalty is
 \begin{equation}
-\lim_{\epsilon \to 0} SIC_\epsilon(w) = -2\ell(w) + \lambda \|w\|_0 \approx BIC(M(w))
+\frac{\partial \phi_\epsilon}{\partial w}
+= \frac{2w\epsilon^2}{(w^2+\epsilon^2)^2}.
 \end{equation}
-where $\|w\|_0$ is the number of active weights. Under the assumption that the log-likelihood is well-behaved and the optimization procedure $(\epsilon \to 0, n \to \infty)$ finds a global minimum, the SIC estimator $\hat{w}_{SIC}$ recovers the sparsest sub-network that minimizes the information criterion. Since BIC is consistent for $M_0$ when $\lambda = \log(n)$, it follows that SIC inherits this consistency property as the epsilon-telescope reaches its limit $\epsilon_T \to 0$. This provides a strong theoretical justification for identifying interpretable, parsimonious neural architectures.
+This gradient is largest for weights near the current epsilon scale, giving the optimizer a continuous route for shrinking small coefficients while leaving large coefficients relatively unaffected.
 
-\subsection{Tuning Parameters for Sparse Optimization}
-While the default penalty is set to $\lambda = \log(n)$, practical applications often require fine-tuning to achieve the desired balance between predictive power and model complexity:
+\subsection{Epsilon Telescope and Restarts}
+Training uses an exponential epsilon schedule
+\begin{equation}
+\epsilon_t=\epsilon_1\left(\frac{\epsilon_T}{\epsilon_1}\right)^{t/(T-1)},
+\quad t=0,\ldots,T-1,
+\end{equation}
+with epoch-to-epsilon indexing controlled by \texttt{steps\_T}. Defaults are \texttt{epsilon\_1 = 10}, \texttt{epsilon\_T = 1e-5}, and \texttt{steps\_T = 100}, although the experiments commonly use \texttt{epsilon\_1 = 1}.
 
-\textbf{Penalty scaling.} In high-dimensional classification tasks, the data loss (BCE or NLL) often exists on a larger scale than the structural penalty. Users can scale the log-likelihood or the penalty coefficient (e.g., using $15\log(n)$) to force more aggressive pruning without losing classification accuracy.
+The \texttt{restarts} argument performs multiple deterministic restarts from different random sparse initializations. For restart $r$, a Bernoulli mask with probability selected from an evenly spaced grid between 0.01 and 0.99 is applied after resetting the layer parameters. The final restart is selected by the mean reported training loss at the end of that run. This is a practical heuristic for exploring local minima, not a guarantee of global optimization.
 
-\textbf{Thresholding ($\tau$).} The transformation $\phi_\epsilon(w)$ provides a soft inclusion probability. In practice, weights are pruned when $\phi_\epsilon(w) \le \tau$. A higher $\tau$ (e.g., $0.5$) yields a sharper, more exclusive model, while a lower $\tau$ (e.g., $10^{-4}$) retains weights with minimal but non-zero contributions, often preserving accuracy in noisy datasets.
+\subsection{Sparse Inference and Active Paths}
+After training, a weight is considered active if either
+\[
+\phi_{\epsilon_T}(w)>\tau
+\]
+when \texttt{sic\_threshold\_type = "phi"}, or
+\[
+|w|>\tau
+\]
+when \texttt{sic\_threshold\_type = "abs"}. The default is a $\phi$-threshold with \texttt{sic\_threshold = 0.5}.
+
+For feed-forward models, \texttt{compute\_paths()} and \texttt{compute\_paths\_input\_skip()} construct binary threshold matrices and then remove edges that are not on an active route from input to output. Sparse prediction uses the resulting \texttt{alpha\_active\_path} masks by multiplying them into the trained weights during the forward pass. This gives deterministic sparse inference for \texttt{SICNN\_Net}. For convolutional models, sparse forward passes use each layer's current \texttt{alpha\_active\_path}; however, the current convolutional wrapper does not compute graph-level active paths.
+
+\section{Relationship to BIC and Degrees of Freedom}
+The SIC objective converges formally to an $L_0$-penalized likelihood as $\epsilon \to 0$:
+\begin{equation}
+\lim_{\epsilon\to 0}
+\left\{-2\ell(W)+\lambda\sum_k \phi_\epsilon(w_k)\right\}
+= -2\ell(W)+\lambda\|W\|_0.
+\end{equation}
+With $\lambda=\log(n)$ this resembles BIC when the candidate model is a regular parametric model with a fixed, identifiable parameter dimension.
+
+For SICNNs, this connection should be interpreted as a calibration principle rather than a complete consistency theorem. Neural networks are generally nonregular models: hidden units can be permuted, weights can be redundant, and different sparse subnetworks may represent the same function. In addition, the optimizer searches adaptively over many sparse graphs. The active-weight count is therefore not identical to classical effective degrees of freedom. For a fixed sparse neural architecture, the functional degrees of freedom may be lower than the raw number of active weights because of non-identifiability and redundant parameterizations. For the full selection procedure, the effective model-search complexity may be larger than the final active-weight count because the selected graph was not fixed in advance.
+
+Consequently, \texttt{penalty = log(n\_train)} is a useful BIC-like default, but it is not universally optimal. Stronger penalties such as $2\log(n)$, $5\log(n)$, or larger multipliers are often appropriate when the target is structural recovery, when $n$ is small, or when the architecture is wide relative to the sample size.
 
 \section{Experimental Results}
-The SICNN architecture is validated on three distinct benchmarks: (i) a synthetic linear regression, (ii) a synthetic nonlinear classification, and (iii) the Gallstone binary classification dataset.
+The repository contains tutorial-style examples, a small saved linear simulation study, convolutional smoke tests, and UCI benchmark scripts. The results below describe the current code and artifacts rather than an idealized theoretical implementation.
 
-\subsection{Linear Regression (Tutorial 1)}
-We simulated $n=1000$ points with $p=15$ covariates, where only 3 features natively contribute to the target $y$. The data generating process consists of strictly linear combinations plus Gaussian noise. A SICNN model with two hidden layers of 5 neurons was optimized over 2000 epochs using a tuned $\epsilon$-telescope decaying precisely to $10^{-5}$ alongside a threshold condition of $|w| > 10^{-5}$.
-The model robustly achieved \textbf{$\sim94.3\%$ sparsity}, completely dropping all 12 noise covariates from the active pathways. Validating against the simulated effects, the network perfectly encapsulated the structural coefficients for $x_1, x_2,$ and $x_3$, bypassing the non-linear hidden nodes natively using input-skip pathways. The test validation $R^2$ was tightly consistent with the noise variance.
+\subsection{Linear Simulation: BIC Penalty Versus Cross-Validated Penalty}
+The saved object \texttt{rj\_experiments/linear\_sim\_results.rds} contains 30 runs from a synthetic sparse linear regression study. Each run used $n=1000$, $p=15$, three true nonzero coefficients, SNR levels 3, 5, and 10, and five repetitions per SNR. The architecture was \((15,5,5,1)\) with input-skip connections. The BIC method used the default \(\lambda=\log(n_{\mathrm{train}})\), while the CV method selected \(\lambda\) from 10 log-spaced candidates between 1 and 100 using a held-out validation fold.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{l|c|c|c|c|c}
+\hline
+\textbf{Method} & \textbf{SNR} & \textbf{Test MSE} & \textbf{Coef. Error} & \textbf{FPR} & \textbf{Active Weights} \\
+\hline
+BIC & 3  & 0.2486 & 0.0229 & 0.0000 & 7.0 \\
+BIC & 5  & 0.1522 & 0.0193 & 0.0000 & 8.0 \\
+BIC & 10 & 0.0826 & 0.0261 & 0.0333 & 12.2 \\
+CV  & 3  & 0.2584 & 0.0350 & 0.0833 & 10.6 \\
+CV  & 5  & 0.1603 & 0.0303 & 0.1000 & 12.4 \\
+CV  & 10 & 0.0791 & 0.0229 & 0.1000 & 18.8 \\
+\hline
+\end{tabular}
+\caption{Mean results from \texttt{linear\_sim\_results.rds}. Both methods achieved mean TPR equal to 1.0 at every SNR. BIC gave similar prediction error with lower false-positive rates and fewer active weights.}
+\label{tab:linear_results}
+\end{table}
+
+In this favorable sparse-linear setting, the BIC-calibrated penalty was conservative and effective: it recovered all true variables in every run and selected fewer false positives than the validation-selected penalty, with similar prediction error.
+
+\subsection{Tutorial 1: Sparse Linear Regression}
+The tutorial \texttt{rj\_experiments/Tutorial\_1\_linear\_SIC.R} simulates $n=1000$ observations with $p=15$ covariates and three active linear effects. It trains an input-skip \((15,5,5,1)\) regression model with \texttt{epsilon\_1 = 1}, \texttt{epsilon\_T = 1e-5}, \texttt{steps\_T = 200}, and a strong explicit penalty \texttt{penalty = 80}. This tutorial is therefore an example of aggressive structural pruning rather than default BIC. The associated local explanation figure illustrates how the sparse input-skip model can represent direct linear effects.
 
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.6\textwidth]{figures/tut1_local.pdf}
-    \caption{Local explanation pathways generated for a single prediction in the linear regression setting. Irrelevant variables have identically zero topological flow.}
+    \caption{Local explanation pathways for a single prediction in the linear regression tutorial. The explanation is computed as the input gradient of the sparse feed-forward model.}
     \label{fig:tut1_local}
 \end{figure}
 
-\subsection{Non-linear Classification (Tutorial 2)}
-To aggressively test the capacity of SICNN to detect nested and functional interactions, we used a dataset of $n=1000$ points generated from non-linear combinations (logarithms, cosines, and interaction terms) on a core subset of 6 active features out of 15. The labels were dichotomized at the median value. 
-Training a $(15, 5, 5, 1)$ network with Smooth BIC regularization ($\lambda = \log(n)$) effectively navigated the larger data-loss scales intrinsic to the BCE loss. The optimized sparse network reached an \textbf{accuracy of $85\%$ using only $\sim20\%$ of the initial weights (almost 80\% sparsity)}. The architecture organically disconnected the 9 uninformative features entirely, while wiring intricate latent activation loops between the 6 functional non-linear predictors.
+\subsection{Tutorial 2: Nonlinear Binary Classification}
+The nonlinear tutorial uses $n=1000$, $p=15$, and a response generated from logarithmic, cosine, interaction, and quadratic terms involving six active inputs. The response is dichotomized at the median and fit with a \((15,5,5,1)\) input-skip binary classifier. This script uses the default SIC penalty, \(\lambda=\log(n_{\mathrm{train}})\), with \texttt{epsilon\_1 = 1}, \texttt{epsilon\_T = 1e-5}, and \texttt{steps\_T = 200}. The global plot shows the thresholded feed-forward active paths found by the model.
 
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.8\textwidth]{figures/tut2_global.pdf}
-    \caption{Global structure of the SICNN trained on non-linear classification. The network exhibits pronounced sparse connectivity focused rigidly on the variables embedded in the non-linear sub-functions.}
+    \caption{Global sparse structure for the nonlinear classification tutorial. Edges are retained when they are active under the SIC threshold and lie on an input-output path.}
     \label{fig:tut2_global}
 \end{figure}
 
-\subsection{Gallstone Propensity Dataset (Tutorial 3)}
-To validate on clinical real-world distributions, SICNN was utilized to predict the presence of gallstones over a curated dataset of $n=223$ patients bearing $p=40$ standardized clinical, physical, and demographic features.
-A topology of $(40, 3, 3, 1)$ combined with an exponentially stepped learning rate successfully stabilized training. The algorithm attained \textbf{$\sim 78.1\%$ validation accuracy} over $1500$ epochs while enforcing staggering penalization, operating on just \textbf{32 active parameters out of 132 (75.7\% sparsity)}. This distills a fundamentally dense predictive neural net into an exceedingly interpretable graph of dominant medical feature weights bridging into the final probabilistic diagnosis. 
+\subsection{Tutorial 3: Gallstone Classification}
+The gallstone tutorial uses the packaged \texttt{Gallstone\_Dataset}, trains a \((40,3,3,1)\) input-skip binary classifier, and evaluates sparse prediction on a held-out split. The script uses the default penalty \(\lambda=\log(n_{\mathrm{train}})\), although \texttt{n\_train} is set to the full dataset size in the script rather than the size of the training split. The example demonstrates the intended workflow for tabular clinical classification: standardize inputs, train with SIC, validate both dense and sparse predictions, plot the global sparse graph, and compute local explanations.
 
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.7\textwidth]{figures/tut3_global.pdf}
-    \caption{Macroscopic pathways mapping clinical patient properties to the probability of gallstone detection. Structural edges visibly trace through bottleneck nodes filtering redundant medical data.}
+    \caption{Sparse feed-forward pathways for the gallstone classification tutorial. The graph reflects thresholded active paths in an input-skip \texttt{SICNN\_Net}.}
     \label{fig:tut3_global}
 \end{figure}
 
-
-\subsection{Image Classification with Convolutional Networks (Tutorial 4)}
-To demonstrate the flexibility of the SICNN framework across deeply structured data, we extended the native penalization mechanism into two-dimensional convolutional layers. The architecture was tested on the KMNIST benchmark, deploying a standard sequence of two convolutional layers ($C1: 32 \times 5 \times 5$, $C2: 64 \times 5 \times 5$) followed by two dense linear layers.
-We applied a static Smooth BIC penalty ($\lambda = \log(n)$) alongside a threshold of $\tau = 0.5$. Within a single epoch of training, the Convolutional SICNN rapidly stabilized, natively discarding redundant spatial filters and aggressively pruning the millions of dense connection pairings originating from the flattened convolution output maps.
-The network flawlessly isolated the primary edge features critical for distinguishing local Kuzushiji stroke patterns, achieving $\sim 90.0\%$ test accuracy while simultaneously collapsing dense 4D matrices into mathematically optimal, human-interpretable sub-networks safely in parameter space.
+\subsection{Convolutional KMNIST Tutorial}
+The KMNIST tutorial builds a two-convolution/two-dense classifier using \texttt{SICNN\_Conv2d} and \texttt{SICNN\_Linear}. It trains for one epoch by default and demonstrates that the SIC training loop, smooth parameter counts, sparse forward calls, and plotting method can be applied to the convolutional wrapper. This example should be read as an implementation and scalability demonstration. The current code does not compute active convolutional paths and does not establish exact spatial feature selection.
 
 \subsection{Benchmark on UCI Datasets}
-To evaluate the scalability and generalizability of SICNN, we conducted a comprehensive study across nine popular UCI Machine Learning Repository benchmarks, including four classification and five regression tasks (including the classical Abalone and Boston Housing datasets).
-
-We utilized a standardized $(p, 100, 50, 20, \text{out})$ architecture with input-skip connections and compared SICNN against standard Generalized Linear Models (GLM) and Random Forest (RF) baselines. As shown in Table \ref{tab:uci_results}, SICNN consistently achieves high predictive performance, often matching or exceeding the baselines, while simultaneously identifying extremely sparse sub-models (regularly exceeding $99.8\%$ sparsity). Notably, on the Airfoil task, SICNN ($R^2=0.570$) significantly outperformed both GLM ($0.532$) and RF ($0.504$). On the Boston Housing dataset, SICNN ($R^2=0.381$) similarly surpassed both GLM ($-0.220$) and RF ($0.351$) while retaining just a handful of active weights ($99.9\%$ sparsity).
+The UCI benchmark script trains standardized input-skip networks of the form
+\[
+(p,100,50,20,\mathrm{out})
+\]
+and compares sparse SICNN predictions against GLM or multinomial/logistic baselines and random forests. Unlike the default BIC setting, the script uses dataset-specific penalty multipliers \(\lambda=c\log(n_{\mathrm{train}})\), with multipliers ranging from 0.005 to 1.0 in the current file. The table below records the values in \texttt{uci\_experiments/final\_uci\_benchmarks.log}.
 
 \begin{table}[h]
 \centering
@@ -137,62 +198,60 @@ Abalone & Regression (R2) & 0.472 & 0.450 & 0.513 & 99.9\% \\
 Boston & Regression (R2) & 0.381 & -0.220 & 0.351 & 99.9\% \\
 \hline
 \end{tabular}
-\caption{Performance metrics across UCI benchmarks. Sparsity denotes the percentage of dense weights zeroed out in the final SICNN inference model. For regression, R2 values are reported. Yacht hydrodynamics utilized a log-transformed target.}
+\caption{Performance metrics from the current UCI benchmark log. Sparsity denotes the percentage of penalized weight parameters removed by the final SIC threshold. For regression, $R^2$ values are reported. Yacht hydrodynamics used a log-transformed target.}
 \label{tab:uci_results}
 \end{table}
 
-\section{Practical Guide to Tuning SICNN Parameters}
-To safely achieve globally favorable optimization configurations yielding both high accuracy and robust sparsity on real-world datasets, the following hierarchical hyperparameter tuning strategy is recommended:
+\section{Practical Tuning Guidance}
+\textbf{Penalty coefficient.}
+The default \(\lambda=\log(n_{\mathrm{train}})\) is a useful starting point. In sparse linear simulations it produced lower false-positive rates than validation-selected penalties. In noisier, smaller, or wider settings, stronger penalties are often needed for structural recovery. In the current examples, explicit penalties range from BIC-scale values to much stronger values such as \texttt{penalty = 80}.
 
-\begin{itemize}
-    \item \textbf{Penalty Scaling ($\lambda$):} Start with the standard BIC penalty $\lambda = \log(n)$. For smaller datasets ($n < 1000$), a multiplier of $5$--$15$ is often necessary to prevent noise-fitting, whereas for high-dimensional spatial data (like Kuzushiji), the multiplier can be significantly higher to enforce structural efficiency.
-    \item \textbf{Epsilon Scheduling:} The telescope sequence $[\epsilon_1, \epsilon_T]$ should ideally bridge from a large initial value (e.g., $1.0$) to a very small final value (e.g., $10^{-4}$). Rapidly decreasing $\epsilon$ can lead to premature weight collapse; a linear or smooth exponential decay over 80\% of training epochs is preferred.
-    \item \textbf{Sparse Thresholding ($\tau$):} The $\tau$ parameter serves as the final filter. A value of $0.5$ is a robust default. If the network retains too many "weak" edges, increasing $\tau$ to $0.7$ can further distill the architecture without significant accuracy loss.
-\end{itemize}
+\textbf{Epsilon schedule.}
+The epsilon telescope controls when the surrogate starts behaving like a hard $L_0$ count. If $\epsilon$ decreases too quickly, weights can be pushed into regions with nearly zero useful gradient. A practical default is to let \texttt{steps\_T} span much of training, commonly 60--80\% of the epochs in larger benchmark scripts.
 
-\textbf{1. Penalty Coefficient ($\lambda$):} 
-The primary driver of structural penalization. If the final network yields $\sim 0\%$ sparsity despite completing the epsilon decay, the data loss is overwhelmingly dominating the structural penalty. In such cases, explicitly increase the \texttt{penalty} argument (e.g., from default $\log(n)$ to $2\log(n), 5\log(n),$ or $10\log(n)$). Conversely, if the network collapses to $100\%$ sparsity and yields random-chance accuracy, the penalty is too aggressive and must be relaxed.
+\textbf{Thresholding.}
+The default threshold \(\tau=0.5\) on \(\phi_{\epsilon_T}(w)\) corresponds to retaining weights whose magnitude exceeds the final epsilon scale. Raising the threshold gives a stricter sparse graph; lowering it can recover weak but useful edges. The alternative \texttt{threshold\_type = "abs"} uses an absolute weight cutoff.
 
-\textbf{2. Epsilon Telescope Scheduling (\texttt{steps\_T}):}
-The $L_0$ surrogate approximation relies directly on the exponential decay of $\epsilon$. If $\epsilon$ drops strictly to its minimal boundary (\texttt{epsilon\_T}) too rapidly, the surrogate contour rigidly approaches a step function prematurely, forcing gradients to zero and preventing further weight exploration. Set \texttt{steps\_T} to span at least $60\%-80\%$ of your total \texttt{epochs} to guarantee smooth continuous penalization during active learning.
+\textbf{Learning rate and scheduling.}
+Because the method depends on separating useful weights from weights that should shrink toward zero, very small learning rates can lead to poor structural separation. The examples use Adam with learning rates between 0.001 and 0.01 and often use \texttt{scheduler = "step"}.
 
-\textbf{3. Base Learning Rate (\texttt{lr}) and Schedulers:}
-Because the magnitude of active weights determines their survival against the $\epsilon$ boundary, learning rates that are exceedingly low prevent cleanly separating beneficial weights from the penalization well. Utilize an initialized learning rate of $\sim 0.01 - 0.05$ paired with a \texttt{scheduler="step"} to forcefully optimize feature combinations early in the training array before settling into fine-grained local minima.
+\textbf{Biases and parameter counts.}
+Current SIC counts include weights but not biases. If bias terms are important for a scientific degrees-of-freedom calculation, this should be reported separately or handled by fitting with \texttt{bias = FALSE}.
 
-\textbf{4. The SIC Threshold (\texttt{sic\_threshold}):}
-After training completes, prediction inference uses this cutoff to strictly sever computational pathways. If the model exhibits high training performance but unexpectedly weak sparse metrics, pushing $\tau$ closer to $0.5$ combined with a higher penalty forces harder delineations, while dropping $\tau \to 10^{-4}$ will safely revive structurally weak but mathematically supportive weights to preserve fragile predictive accuracy.
-
-\section{Frequentist Uncertainty Quantification via the Sandwich Estimator}
-To provide confidence intervals for the local explanations $g(w) = \nabla_x \mu(w, x)$, we employ the Delta method in a Frequentist framework. Given the weight estimate $\hat{w}$ from SIC optimization, we approximate the parameter covariance matrix $\Sigma_w$ using the sandwich estimator proposed by Fan and Li (2001) for penalized likelihood estimators.
-
-Specifically, the asymptotic covariance of the nonzero weights is:
+\section{Local Explanations and Uncertainty}
+For input-skip feed-forward models, local explanations are computed by temporarily using the raw output and differentiating it with respect to the input:
 \begin{equation}
-\Sigma_w = H(\hat{w})^{-1} I_0(\hat{w}) H(\hat{w})^{-1}
+g_j(x)=\frac{\partial \mu(W,x)}{\partial x_j}.
 \end{equation}
-where:
-\begin{itemize}
-    \item $H(\hat{w})$ is the Hessian of the penalized SIC objective (the "bread"): $H(\hat{w}) = \nabla^2 \mathcal{L}_{data}(\hat{w}) + \lambda \nabla^2 \|\hat{w}\|_{0,\epsilon}$.
-    \item $I_0(\hat{w})$ is the Empirical Fisher Information (the "meat") of the unpenalized data part: $I_0(\hat{w}) = \sum_i (\nabla \mathcal{L}_{data, i}(\hat{w}))^2$.
-\end{itemize}
+Sparse explanations use the active-path masked model. The \texttt{coef()} method aggregates these gradients over one or more observations and can optionally attach uncertainty estimates.
 
-The penalized Hessian $H$ incorporates the local curvature of the smooth $L_0$ surrogate at the final epsilon $\epsilon_T$:
+The uncertainty code approximates parameter covariance using a sandwich-style estimator for penalized models. Let \(I_0\) denote an empirical Fisher approximation from per-sample gradients of the data loss, and let \(H\) denote a curvature approximation that adds the nonnegative part of the smooth penalty Hessian,
 \begin{equation}
-\frac{\partial^2 \phi_\epsilon}{\partial w^2} = \frac{2\epsilon^2 (\epsilon^2 - 3w^2)}{(w^2 + \epsilon^2)^3}
+\frac{\partial^2 \phi_\epsilon}{\partial w^2}
+=
+\frac{2\epsilon^2(\epsilon^2-3w^2)}{(w^2+\epsilon^2)^3}.
 \end{equation}
-This penalty term effectively increases the precision (decreases variance) for weights being pruned toward zero, while the data information $I_0$ dominates for active predictors.
-
-The variance of the local explanation for a specific input $x$ is then approximated via the Delta method:
+The implementation clamps this penalty curvature below at zero before forming diagonal or block-diagonal covariance approximations. For diagonal covariance, the resulting form is
 \begin{equation}
-\text{Var}(g(w)) \approx J_g \Sigma_w J_g^T
+\widehat{\mathrm{Var}}(w_j)
+\approx
+\frac{I_{0,jj}}{H_{jj}^2}.
 \end{equation}
-where $J_g = \frac{\partial^2 \mu(w, x)}{\partial w \partial x}$ is the Jacobian of the gradient with respect to the model weights.
+For block-diagonal covariance, each parameter tensor is treated as a separate block and inverted independently.
 
-To maintain computational scalability in deep architectures, we support block-diagonal approximations of the sandwich components:
+The variance of a local explanation is then approximated by the Delta method:
+\begin{equation}
+\mathrm{Var}(g(W,x)) \approx J_g \Sigma_W J_g^T,
+\end{equation}
+where \(J_g\) is computed by automatic differentiation. This provides a scalable post-fit uncertainty heuristic for local explanations. It should not be interpreted as full post-selection inference for the graph-selection procedure.
+
+\section{Known Limitations}
 \begin{itemize}
-    \item \textbf{Diagonal Sandwich:} Both $H$ and $I_0$ are approximated by their diagonals, leading to $\text{Var}(w_j) = \frac{I_{0,jj}}{H_{jj}^2}$.
-    \item \textbf{Block-Diagonal Sandwich:} $H$ and $I_0$ are computed for each layer's weight matrix, and the sandwich is evaluated via block-wise matrix inversion.
+    \item The BIC connection is approximate for neural networks because the selected sparse graph is adaptive and the parameterization is generally nonregular.
+    \item The smooth parameter count currently includes weight tensors but excludes biases.
+    \item Feed-forward active-path extraction is implemented; convolutional active-path extraction is not yet implemented.
+    \item Multi-restart training is a local-search heuristic and does not guarantee a global SIC optimum.
+    \item Some legacy documentation strings in the code still refer to variational inference or posterior draws, but current \texttt{train\_SICNN()} and \texttt{predict()} behavior is deterministic SIC training and deterministic forward evaluation.
 \end{itemize}
-
-This approach allows for robust, post-selection inference that correctly reflects the structural uncertainty of the sparse sub-network discovered by the SIC process, ensuring that confidence intervals are mathematically consistent with the penalized likelihood surface.
 
 \end{document}
