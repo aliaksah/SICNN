@@ -1,191 +1,341 @@
 library(devtools)
 load_all(".")
+library(torch)
 library(dplyr)
-library(tidyr)
-library(purrr)
+library(tibble)
 
-# Function to generate additive model data
+# Generate additive regression data:
+# y = sin(pi * x1) + 2.5 * x2^2 - 2.5 * exp(-2 * x3^2) + noise
 generate_additive_data <- function(n, p, snr) {
-  # X from Uniform(-1, 1) to cover meaningful ranges for sin, exp, and x^2
   X <- matrix(runif(n * p, 0, 2), ncol = p)
-
-  # Yi = sin(πXi1) + 2.5Xi2^2 - 2.5exp(-2Xi3^2) + εi
   signal <- sin(pi * X[, 1]) + 2.5 * X[, 2]^2 - 2.5 * exp(-2 * X[, 3]^2)
-
   var_signal <- var(signal)
-  var_noise <- var_signal / snr
-  noise <- rnorm(n, sd = sqrt(var_noise))
-  y <- signal + noise
+  noise <- rnorm(n, sd = sqrt(var_signal / snr))
 
   data <- as.data.frame(X)
-  colnames(data) <- paste0("x", 1:p)
-  data$y <- as.numeric(y)
-  return(data)
+  colnames(data) <- paste0("x", seq_len(p))
+  data$y <- as.numeric(signal + noise)
+  data
 }
 
-# Simulation settings
-ns_list <- c(1000)
-snrs_list <- c(10)
-# Default BIC penalty for n=800 is log(800) approx 6.68
-# We will test a range of penalties to see which recovers the structure best
-
-penalties_list <- c(log(800), 10, 20, 50, 100)
-n_reps <- 1
-p <- 15
-
-results <- list()
-
-set.seed(42)
-torch::torch_manual_seed(42)
-
-# Grid of experiments
-experiments <- expand.grid(
-  n = ns_list,
-  snr = snrs_list,
-  penalty = penalties_list,
-  rep = 1:n_reps
-)
-
-cat("Starting Additive Model simulation with", nrow(experiments), "total runs...\n")
-
-for (i in 1:nrow(experiments)) {
-  exp <- experiments[i, ]
-  cat(sprintf(
-    "Run %d/%d: N=%d, SNR=%d, Penalty=%.2f, Rep=%d\n",
-    i, nrow(experiments), exp$n, exp$snr, exp$penalty, exp$rep
-  ))
-
-  # Generate data
-  data <- generate_additive_data(exp$n, p, exp$snr)
-
-  # Loaders
-  loaders <- get_dataloaders(
-    data,
-    train_proportion = 0.8,
-    train_batch_size = min(as.integer(exp$n * 0.8), 200),
-    test_batch_size = min(as.integer(exp$n * 0.2), 100),
-    standardize = FALSE
+make_loader <- function(sim_df, p, batch_size, shuffle = TRUE) {
+  xmat <- as.matrix(sim_df[, seq_len(p)])
+  yvec <- as.numeric(sim_df[["y"]])
+  ds <- torch::tensor_dataset(
+    torch::torch_tensor(xmat),
+    torch::torch_tensor(yvec)
   )
+  torch::dataloader(ds, batch_size = batch_size, shuffle = shuffle)
+}
 
-  # Define Model
+fit_model <- function(train_loader, n_train, penalty_val,
+                      epochs, lr, sch_step_size, sizes,
+                      epsilon_1, epsilon_T, steps_T, sic_threshold) {
   model <- SICNN_Net(
     problem_type = "regression",
-    sizes = c(p, 5, 5, 1),
+    sizes = sizes,
     input_skip = TRUE,
     device = "cpu"
   )
 
-  # Train
-  train_results <- train_SICNN(
-    epochs = 5000,
-    restarts = 1,
+  train_SICNN(
+    epochs = epochs,
+    restarts = 1L,
     SICNN = model,
-    lr = 0.002,
-    train_dl = loaders$train_loader,
+    lr = lr,
+    train_dl = train_loader,
     device = "cpu",
     scheduler = "step",
-    sch_step_size = 1500,
-    n_train = exp$n * 0.8,
-    epsilon_1 = 1,
-    epsilon_T = 1e-5,
-    steps_T = 1000,
-    sic_threshold = 0.5,
-    penalty = exp$penalty
+    sch_step_size = sch_step_size,
+    n_train = n_train,
+    epsilon_1 = epsilon_1,
+    epsilon_T = epsilon_T,
+    steps_T = steps_T,
+    sic_threshold = sic_threshold,
+    penalty = penalty_val
   )
 
-  # Metrics
-  val_res <- validate_SICNN(model, num_samples = 1, test_dl = loaders$test_loader, device = "cpu", verbose = FALSE)
-  test_mse <- as.numeric(val_res$validation_error_sparse)
+  model
+}
 
-  # Feature Selection
-  model$compute_paths_input_skip(epsilon = 1e-5, threshold = 0.5)
+# Pick lambda with a single held-out validation fold, matching the linear study.
+cv_lambda <- function(data, lambda_grid, p,
+                      epochs, lr, sch_step_size, sizes,
+                      epsilon_1, epsilon_T, steps_T, sic_threshold) {
+  n_total <- nrow(data)
+  val_idx <- sample(n_total, size = round(n_total * 0.10))
+  cv_train_df <- data[-val_idx, ]
+  cv_val_df <- data[val_idx, ]
+  n_cv_train <- nrow(cv_train_df)
+
+  cv_train_loader <- make_loader(
+    cv_train_df, p,
+    batch_size = min(n_cv_train, 200L),
+    shuffle = TRUE
+  )
+  cv_val_loader <- make_loader(
+    cv_val_df, p,
+    batch_size = min(nrow(cv_val_df), 100L),
+    shuffle = FALSE
+  )
+
+  cv_rmse <- numeric(length(lambda_grid))
+
+  for (j in seq_along(lambda_grid)) {
+    lam <- lambda_grid[j]
+    cat(sprintf("  [CV] lambda %d/%d = %.3f\n", j, length(lambda_grid), lam))
+
+    cv_model <- fit_model(
+      cv_train_loader, n_cv_train, lam,
+      epochs, lr, sch_step_size, sizes,
+      epsilon_1, epsilon_T, steps_T, sic_threshold
+    )
+
+    cv_model$compute_paths_input_skip(
+      epsilon = epsilon_T,
+      threshold = sic_threshold
+    )
+    cv_model$eval()
+
+    sq_err <- numeric(0)
+    torch::with_no_grad({
+      coro::loop(for (b in cv_val_loader) {
+        pred <- cv_model(b[[1]], sparse = TRUE)$squeeze()
+        target <- b[[2]]
+        sq_err <- c(sq_err, as.numeric((pred - target)^2))
+      })
+    })
+    cv_rmse[j] <- sqrt(mean(sq_err))
+  }
+
+  best_idx <- which.min(cv_rmse)
+  cat(sprintf(
+    "  [CV] best lambda = %.3f (RMSE = %.4f)\n",
+    lambda_grid[best_idx], cv_rmse[best_idx]
+  ))
+
+  list(
+    best_lambda = lambda_grid[best_idx],
+    best_rmse = cv_rmse[best_idx],
+    all_lambdas = lambda_grid,
+    all_rmse = cv_rmse
+  )
+}
+
+select_active_features <- function(model, p, epsilon_T, sic_threshold) {
+  model$compute_paths_input_skip(epsilon = epsilon_T, threshold = sic_threshold)
 
   selected <- rep(FALSE, p)
-  # Check hidden layers
+
   for (l in model$layers$children) {
     alp <- as.matrix(l$alpha_active_path$cpu())
     in_f <- ncol(alp)
-    cov_cols <- if (in_f == p) 1:p else (in_f - p + 1):in_f
+    cov_cols <- if (in_f == p) seq_len(p) else (in_f - p + 1L):in_f
     selected <- selected | (colSums(alp[, cov_cols, drop = FALSE]) > 0)
   }
-  # Check output layer
+
   alp_out <- as.matrix(model$out_layer$alpha_active_path$cpu())
   in_f <- ncol(alp_out)
-  cov_cols <- if (in_f == p) 1:p else (in_f - p + 1):in_f
+  cov_cols <- if (in_f == p) seq_len(p) else (in_f - p + 1L):in_f
   selected <- selected | (colSums(alp_out[, cov_cols, drop = FALSE]) > 0)
 
-  # Additive Structure Recovery Metric
-  compute_additivity_ratio <- function(model, p) {
-    current_masks <- diag(p)
-    interaction_count <- 0
-    active_count <- 0
-    num_h_layers <- length(model$layers$children)
+  selected
+}
 
-    # Layer 1
-    l1 <- model$layers$children$`0`
-    alp1 <- as.matrix(l1$alpha_active_path$cpu())
-    next_masks <- (alp1 %*% current_masks) > 0
+compute_additivity_ratio <- function(model, p) {
+  current_masks <- diag(p)
+  interaction_count <- 0
+  active_count <- 0
+  num_h_layers <- length(model$layers$children)
 
-    active_row <- rowSums(alp1) > 0
-    interaction_count <- interaction_count + sum((rowSums(next_masks) > 1) & active_row)
-    active_count <- active_count + sum(active_row)
+  l1 <- model$layers$children$`0`
+  alp1 <- as.matrix(l1$alpha_active_path$cpu())
+  next_masks <- (alp1 %*% current_masks) > 0
 
-    # Subsequent Layers
-    if (num_h_layers > 1) {
-      for (idx in 2:num_h_layers) {
-        l <- model$layers$children[[idx]]
-        alp <- as.matrix(l$alpha_active_path$cpu())
-        in_masks <- rbind(next_masks, diag(p))
-        next_masks <- (alp %*% in_masks) > 0
+  active_row <- rowSums(alp1) > 0
+  interaction_count <- interaction_count + sum((rowSums(next_masks) > 1) & active_row)
+  active_count <- active_count + sum(active_row)
 
-        active_row <- rowSums(alp) > 0
-        interaction_count <- interaction_count + sum((rowSums(next_masks) > 1) & active_row)
-        active_count <- active_count + sum(active_row)
-      }
+  if (num_h_layers > 1) {
+    for (idx in 2:num_h_layers) {
+      l <- model$layers$children[[idx]]
+      alp <- as.matrix(l$alpha_active_path$cpu())
+      in_masks <- rbind(next_masks, diag(p))
+      next_masks <- (alp %*% in_masks) > 0
+
+      active_row <- rowSums(alp) > 0
+      interaction_count <- interaction_count + sum((rowSums(next_masks) > 1) & active_row)
+      active_count <- active_count + sum(active_row)
     }
-
-    if (active_count == 0) {
-      return(1)
-    }
-    return(1 - (interaction_count / active_count))
   }
 
+  if (active_count == 0) {
+    return(1)
+  }
+  1 - (interaction_count / active_count)
+}
+
+extract_metrics <- function(model, test_loader, p, n, snr, rep_id,
+                            method, penalty_used, epsilon_T, sic_threshold) {
+  selected <- select_active_features(model, p, epsilon_T, sic_threshold)
   additivity_ratio <- compute_additivity_ratio(model, p)
 
-  # TPR/FPR
+  model$eval()
+  sq_err <- numeric(0)
+  torch::with_no_grad({
+    coro::loop(for (b in test_loader) {
+      pred <- model(b[[1]], sparse = TRUE)$squeeze()
+      target <- b[[2]]
+      sq_err <- c(sq_err, as.numeric((pred - target)^2))
+    })
+  })
+
   true_vars <- 1:3
   false_vars <- 4:p
+  sic_counts <- model$sic_weight_counts(
+    epsilon = epsilon_T,
+    threshold = sic_threshold,
+    active_paths = TRUE
+  )
 
-  tpr <- sum(selected[true_vars]) / length(true_vars)
-  fpr <- sum(selected[false_vars]) / length(false_vars)
+  tibble(
+    n = n,
+    snr = snr,
+    rep = rep_id,
+    method = method,
+    penalty_used = penalty_used,
+    test_mse = mean(sq_err),
+    tpr = sum(selected[true_vars]) / length(true_vars),
+    fpr = sum(selected[false_vars]) / length(false_vars),
+    additivity = additivity_ratio,
+    active_weights = as.numeric(sic_counts["active"])
+  )
+}
 
-  # Store results
-  results[[i]] <- tibble(
-    n = exp$n,
-    snr = exp$snr,
-    penalty = exp$penalty,
-    rep = exp$rep,
-    test_mse = test_mse,
-    tpr = tpr,
-    fpr = fpr,
-    additivity = additivity_ratio
+# Simulation settings
+ns_list <- c(2000L)
+snrs_list <- c(3)
+n_reps <- 5L
+p <- 15L
+
+lambda_grid <- exp(seq(log(1), log(100), length.out = 10))
+cat("Lambda grid:\n")
+print(round(lambda_grid, 3))
+
+EPOCHS <- 5000L
+LR <- 0.002
+SCH_STEP_SIZE <- 1500L
+SIZES <- c(p, 5L, 5L, 1L)
+EPSILON_1 <- 10
+EPSILON_T <- 1e-5
+STEPS_T <- 100L
+SIC_THRESHOLD <- 0.5
+
+set.seed(42)
+torch::torch_manual_seed(42)
+
+experiments <- expand.grid(
+  n = ns_list,
+  snr = snrs_list,
+  rep = seq_len(n_reps),
+  method = c("bic", "cv"),
+  stringsAsFactors = FALSE
+)
+
+cat(sprintf(
+  "Starting additive simulation with %d total runs.\n",
+  nrow(experiments)
+))
+
+results <- vector("list", nrow(experiments))
+
+for (i in seq_len(nrow(experiments))) {
+  exp_i <- experiments[i, ]
+  method <- exp_i$method
+
+  cat(sprintf(
+    "\nRun %d/%d: N=%d, SNR=%d, Rep=%d, Method=%s\n",
+    i, nrow(experiments), exp_i$n, exp_i$snr, exp_i$rep, method
+  ))
+
+  data <- generate_additive_data(exp_i$n, p, exp_i$snr)
+  n_train <- as.integer(exp_i$n * 0.8)
+  n_test <- exp_i$n - n_train
+
+  train_idx <- sample(nrow(data), n_train)
+  train_df <- data[train_idx, ]
+  test_df <- data[-train_idx, ]
+
+  train_loader <- make_loader(
+    train_df, p,
+    batch_size = min(n_train, 200L),
+    shuffle = TRUE
+  )
+  test_loader <- make_loader(
+    test_df, p,
+    batch_size = min(n_test, 100L),
+    shuffle = FALSE
+  )
+
+  if (method == "bic") {
+    penalty_used <- log(n_train)
+    model <- fit_model(
+      train_loader, n_train, penalty_val = NULL,
+      EPOCHS, LR, SCH_STEP_SIZE, SIZES,
+      EPSILON_1, EPSILON_T, STEPS_T, SIC_THRESHOLD
+    )
+  } else if (method == "cv") {
+    cat("  Running CV to select lambda...\n")
+    cv_out <- cv_lambda(
+      data, lambda_grid, p,
+      EPOCHS, LR, SCH_STEP_SIZE, SIZES,
+      EPSILON_1, EPSILON_T, STEPS_T, SIC_THRESHOLD
+    )
+    penalty_used <- cv_out$best_lambda
+
+    cat(sprintf("  Refitting on full training set with lambda = %.3f\n", penalty_used))
+    model <- fit_model(
+      train_loader, n_train, penalty_used,
+      EPOCHS, LR, SCH_STEP_SIZE, SIZES,
+      EPSILON_1, EPSILON_T, STEPS_T, SIC_THRESHOLD
+    )
+  }
+
+  results[[i]] <- extract_metrics(
+    model = model,
+    test_loader = test_loader,
+    p = p,
+    n = exp_i$n,
+    snr = exp_i$snr,
+    rep_id = exp_i$rep,
+    method = method,
+    penalty_used = penalty_used,
+    epsilon_T = EPSILON_T,
+    sic_threshold = SIC_THRESHOLD
   )
 }
 
 final_results <- bind_rows(results)
 
-# Summary table
-summary_table <- final_results %>%
-  group_by(n, snr, penalty) %>%
+summary_table <- final_results |>
+  group_by(method, n, snr) |>
   summarise(
+    mean_penalty = mean(penalty_used),
+    sd_penalty = sd(penalty_used),
     mean_mse = mean(test_mse),
+    sd_mse = sd(test_mse),
     mean_tpr = mean(tpr),
     mean_fpr = mean(fpr),
     mean_additivity = mean(additivity),
+    sd_additivity = sd(additivity),
+    mean_active_w = mean(active_weights),
+    sd_active_w = sd(active_weights),
     .groups = "drop"
   )
 
-print(summary_table)
+cat("\n====== Additive Simulation Summary ======\n")
+print(as.data.frame(summary_table))
 
-# Optional: Plot the response for a variable to see if non-linearity was captured
-# plot(model, data = loaders$test_loader$dataset$tensors[[1]][1, ], type = "local")
+# Optionally save results
+# saveRDS(final_results, "rj_experiments/additive_sim_results.rds")
+# write.csv(summary_table, "rj_experiments/additive_sim_summary.csv", row.names = FALSE)

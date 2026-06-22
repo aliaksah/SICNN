@@ -40,7 +40,7 @@ library(torch)
 #'     \item \code{compute_paths_input_skip()}: Computes active paths with  input-skip enabled. 
 #'     \item \code{density_active_path()}: Returns network density after removing inactive paths.
 #'     \item \code{smooth_param_count(epsilon)}: Returns the smooth L0-based effective parameter
-#'     count used in the smooth information criterion (SIC) of O’Neill and Burke (2023),
+#'     count used in the smooth information criterion (SIC) of Oâ€™Neill and Burke (2023),
 #'     based on the penalty \eqn{\phi_\epsilon(x) = x^2 / (x^2 + \epsilon^2)} applied to the
 #'     layer weight means.
 #'   }
@@ -120,11 +120,11 @@ SICNN_Net <- torch::nn_module(
       x <- self$out(self$out_layer(x,sparse=sparse))
     }
     else{x_input <- x$view(c(-1,self$sizes[1]))
-    x <- self$layers$children$`0`(x_input,sparse=sparse) #first layer
+    x <- self$act(self$layers$children$`0`(x_input,sparse=sparse)) #first layer
     j <- 1
     for(l in self$layers$children){
       if(j > 1){#skip the first layer when iterating.
-        x <- l(torch::torch_cat(c(x,x_input),dim = 2),sparse=sparse)
+        x <- self$act(l(torch::torch_cat(c(x,x_input),dim = 2),sparse=sparse))
       }
       j <- j + 1
     }
@@ -206,8 +206,10 @@ SICNN_Net <- torch::nn_module(
     if(!is.numeric(threshold) || length(threshold) != 1 || threshold <= 0){
       stop("threshold must be a positive numeric scalar")
     }
-    if(self$computed_paths == FALSE){
-      if(self$input_skip){self$compute_paths_input_skip()} else {self$compute_paths()}
+    if(self$input_skip){
+      self$compute_paths_input_skip(epsilon = epsilon, threshold = threshold, threshold_type = threshold_type)
+    } else {
+      self$compute_paths(epsilon = epsilon, threshold = threshold, threshold_type = threshold_type)
     }
     phi_active <- function(w_eff){
       if(threshold_type == "abs"){
@@ -245,8 +247,12 @@ SICNN_Net <- torch::nn_module(
       stop("threshold must be a positive numeric scalar")
     }
     
-    if(active_paths && self$computed_paths == FALSE){
-      if(self$input_skip){self$compute_paths_input_skip()} else {self$compute_paths()}
+    if(active_paths){
+      if(self$input_skip){
+        self$compute_paths_input_skip(epsilon = epsilon, threshold = threshold, threshold_type = threshold_type)
+      } else {
+        self$compute_paths(epsilon = epsilon, threshold = threshold, threshold_type = threshold_type)
+      }
     }
 
     phi_active <- function(w_eff){
@@ -502,7 +508,7 @@ SICNN_ConvNet <- torch::nn_module(
     return(k_smooth)
   },
   
-  sic_weight_counts = function(epsilon, threshold = 0.5, threshold_type = "phi"){
+  sic_weight_counts = function(epsilon, threshold = 0.5, threshold_type = "phi", active_paths = FALSE){
     if(missing(epsilon) || !is.numeric(epsilon) || length(epsilon) != 1 || epsilon <= 0){
       stop("epsilon must be a positive numeric scalar")
     }
