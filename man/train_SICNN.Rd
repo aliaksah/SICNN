@@ -42,6 +42,13 @@ supports 'step' and 'multi_step'.}
 
 \item{sch_step_size}{Where to decay if using \code{torch::lr_step}. E.g. 1000 means learning rate is decayed every 1000 epochs.}
 
+\item{sch_milestones}{Numeric vector of epochs, or fractions of total epochs,
+at which to decay the learning rate when \code{scheduler = "multi_step"}.
+Defaults to \code{c(0.3, 0.5, 0.7, 0.9)} when omitted.}
+
+\item{sch_gamma}{Positive numeric learning-rate decay factor used by
+\code{scheduler = "step"} and \code{scheduler = "multi_step"}.}
+
 \item{n_train}{integer, total number of training observations used to scale the BIC penalty via \eqn{\log(n_\mathrm{train})}.}
 
 \item{epsilon_1}{numeric, starting value of the \eqn{\epsilon}-telescope when using

@@ -25,6 +25,11 @@ library(torch)
 #' @param scheduler A torch learning rate scheduler object. Can be used to decay learning rate for better convergence, 
 #' supports 'step' and 'multi_step'.
 #' @param sch_step_size Where to decay if using \code{torch::lr_step}. E.g. 1000 means learning rate is decayed every 1000 epochs.
+#' @param sch_milestones Numeric vector of epochs, or fractions of total epochs,
+#'   at which to decay the learning rate when \code{scheduler = "multi_step"}.
+#'   Defaults to \code{c(0.3, 0.5, 0.7, 0.9)} when omitted.
+#' @param sch_gamma Positive numeric learning-rate decay factor used by
+#'   \code{scheduler = "step"} and \code{scheduler = "multi_step"}.
 #' @param n_train integer, total number of training observations used to scale the BIC penalty via \eqn{\log(n_\mathrm{train})}.
 #' @param restarts integer, number of restarts mapping to distinct sparsity initializations. Default is 1.
 #' @param penalty numeric, explicit positive coefficient for the smooth L0 count. Default is NULL, which uses \eqn{\log(n_\mathrm{train})} on the \eqn{-2\ell} scale.
