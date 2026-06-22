@@ -12,6 +12,8 @@ train_SICNN(
   device = "cpu",
   scheduler = NULL,
   sch_step_size = NULL,
+  sch_milestones = NULL,
+  sch_gamma = 0.1,
   n_train = NULL,
   epsilon_1 = 10,
   epsilon_T = 1e-05,
@@ -36,14 +38,14 @@ with features and targets.}
 \item{device}{the device to be trained on. Default is 'cpu', also accepts 'gpu' or 'mps'.}
 
 \item{scheduler}{A torch learning rate scheduler object. Can be used to decay learning rate for better convergence,
-currently only supports 'step'.}
+supports 'step' and 'multi_step'.}
 
 \item{sch_step_size}{Where to decay if using \code{torch::lr_step}. E.g. 1000 means learning rate is decayed every 1000 epochs.}
 
-\item{n_train}{integer, total number of training observations used to scale the BIC penalty via \eqn{\log(n_\mathrm{train})/2}.}
+\item{n_train}{integer, total number of training observations used to scale the BIC penalty via \eqn{\log(n_\mathrm{train})}.}
 
 \item{epsilon_1}{numeric, starting value of the \eqn{\epsilon}-telescope when using
-\code{criterion = "SIC"}. Defaults to 10, as in O’Neill and Burke (2023).}
+\code{criterion = "SIC"}. Defaults to 10, as in Oâ€™Neill and Burke (2023).}
 
 \item{epsilon_T}{numeric, final value of the \eqn{\epsilon}-telescope when using
 \code{criterion = "SIC"}. Defaults to 1e-5.}
@@ -51,7 +53,7 @@ currently only supports 'step'.}
 \item{steps_T}{integer, number of steps in the \eqn{\epsilon}-telescope sequence
 when using \code{criterion = "SIC"}. Defaults to 100.}
 
-\item{sic_threshold}{numeric scalar used for reporting “active”
+\item{sic_threshold}{numeric scalar used for reporting â€œactiveâ€
 edges under SIC. If \code{sic_threshold_type="phi"}, this acts as a threshold on \eqn{\phi_\epsilon(w_\mathrm{eff})} (typically in (0,1)). If \code{sic_threshold_type="abs"}, it's an absolute threshold on the unpenalized weight directly.}
 
 \item{sic_threshold_type}{character, either \code{"phi"} (default) or \code{"abs"}.}
@@ -62,7 +64,7 @@ telescope, or always use \eqn{\epsilon_T} (the final level).}
 
 \item{restarts}{integer, number of restarts mapping to distinct sparsity initializations. Default is 1.}
 
-\item{penalty}{numeric, explicit penalty coefficient to scale the L0 smooth approximation. Default is NULL (falls back to BIC scaling).}
+\item{penalty}{numeric, explicit positive coefficient for the smooth L0 count. Default is NULL, which uses \eqn{\log(n_\mathrm{train})} on the \eqn{-2\ell} scale.}
 }
 \value{
 a list containing the losses and accuracy (if classification) and density for each epoch during training.
@@ -79,15 +81,16 @@ A list with elements (returned invisibly):
 Function that for each epoch iterates through each mini-batch, computing
 the loss and using back-propagation to update the network parameters.
 
-By default, \code{train_SICNN} uses the original variational Bayes objective:
-the data-fit loss plus the KL-divergence term from \code{SICNN$kl_div()}.
-Alternatively, setting \code{criterion = "SIC"} replaces the KL term with the
-smooth BIC-type penalty of O’Neill and Burke (2023), i.e.
-\deqn{ -\ell(\theta) + \tfrac{1}{2}\log(n_\mathrm{train}) \|\theta\|_{0,\epsilon}, }
-where \eqn{\|\theta\|_{0,\epsilon}} is the smooth L0 norm computed via
-\code{SICNN$smooth_param_count(epsilon)} and \eqn{n_\mathrm{train}} is the number
-of training observations. During training with \code{criterion = "SIC"}, an
-\eqn{\epsilon}-telescope is implemented across epochs, as recommended in the paper.
+\code{train_SICNN} minimizes a smooth information-criterion objective,
+\deqn{ -2\ell(\theta) + \lambda \|\theta\|_{0,\epsilon}, }
+where \eqn{\|\theta\|_{0,\epsilon}} is the smooth L0 count computed by
+\code{SICNN$smooth_param_count(epsilon)}. The default is
+\eqn{\lambda = \log(n_\mathrm{train})}. For regression, the profile-Gaussian
+term is \eqn{n\log(\mathrm{RSS}/n)} up to a model-independent constant. For the
+native binary and multiclass losses, summed BCE/NLL is multiplied by two to put
+it on the same \eqn{-2\ell} scale. A custom loss must return summed negative
+log likelihood for this calibration to apply. Training uses an exponential
+\eqn{\epsilon}-telescope.
 }
 \examples{
 \donttest{ 

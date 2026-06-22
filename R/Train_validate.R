@@ -5,15 +5,16 @@ library(torch)
 #' Function that for each epoch iterates through each mini-batch, computing
 #' the loss and using back-propagation to update the network parameters.
 #'
-#' By default, \code{train_SICNN} uses the original variational Bayes objective:
-#' the data-fit loss plus the KL-divergence term from \code{SICNN$kl_div()}.
-#' Alternatively, setting \code{criterion = "SIC"} replaces the KL term with the
-#' smooth BIC-type penalty of O’Neill and Burke (2023), i.e.
-#' \deqn{ -\ell(\theta) + \tfrac{1}{2}\log(n_\mathrm{train}) \|\theta\|_{0,\epsilon}, }
-#' where \eqn{\|\theta\|_{0,\epsilon}} is the smooth L0 norm computed via
-#' \code{SICNN$smooth_param_count(epsilon)} and \eqn{n_\mathrm{train}} is the number
-#' of training observations. During training with \code{criterion = "SIC"}, an
-#' \eqn{\epsilon}-telescope is implemented across epochs, as recommended in the paper.
+#' \code{train_SICNN} minimizes a smooth information-criterion objective,
+#' \deqn{ -2\ell(\theta) + \lambda \|\theta\|_{0,\epsilon}, }
+#' where \eqn{\|\theta\|_{0,\epsilon}} is the smooth L0 count computed by
+#' \code{SICNN$smooth_param_count(epsilon)}. The default is
+#' \eqn{\lambda = \log(n_\mathrm{train})}. For regression, the profile-Gaussian
+#' term is \eqn{n\log(\mathrm{RSS}/n)} up to a model-independent constant. For the
+#' native binary and multiclass losses, summed BCE/NLL is multiplied by two to put
+#' it on the same \eqn{-2\ell} scale. A custom loss must return summed negative
+#' log likelihood for this calibration to apply. Training uses an exponential
+#' \eqn{\epsilon}-telescope.
 #'
 #' @param epochs integer, total number of epochs to train for, where one epoch is a pass through the entire training dataset (all mini batches).
 #' @param SICNN An instance of  \code{SICNN_Net}, to be trained.
@@ -22,18 +23,18 @@ library(torch)
 #' with features and targets.
 #' @param device the device to be trained on. Default is 'cpu', also accepts 'gpu' or 'mps'.
 #' @param scheduler A torch learning rate scheduler object. Can be used to decay learning rate for better convergence, 
-#' currently only supports 'step'.
+#' supports 'step' and 'multi_step'.
 #' @param sch_step_size Where to decay if using \code{torch::lr_step}. E.g. 1000 means learning rate is decayed every 1000 epochs.
-#' @param n_train integer, total number of training observations used to scale the BIC penalty via \eqn{\log(n_\mathrm{train})/2}.
+#' @param n_train integer, total number of training observations used to scale the BIC penalty via \eqn{\log(n_\mathrm{train})}.
 #' @param restarts integer, number of restarts mapping to distinct sparsity initializations. Default is 1.
-#' @param penalty numeric, explicit penalty coefficient to scale the L0 smooth approximation. Default is NULL (falls back to BIC scaling).
+#' @param penalty numeric, explicit positive coefficient for the smooth L0 count. Default is NULL, which uses \eqn{\log(n_\mathrm{train})} on the \eqn{-2\ell} scale.
 #' @param epsilon_1 numeric, starting value of the \eqn{\epsilon}-telescope when using
-#' \code{criterion = "SIC"}. Defaults to 10, as in O’Neill and Burke (2023).
+#' \code{criterion = "SIC"}. Defaults to 10, as in Oâ€™Neill and Burke (2023).
 #' @param epsilon_T numeric, final value of the \eqn{\epsilon}-telescope when using
 #' \code{criterion = "SIC"}. Defaults to 1e-5.
 #' @param steps_T integer, number of steps in the \eqn{\epsilon}-telescope sequence
 #' when using \code{criterion = "SIC"}. Defaults to 100.
-#' @param sic_threshold numeric scalar used for reporting “active”
+#' @param sic_threshold numeric scalar used for reporting â€œactiveâ€
 #' edges under SIC. If \code{sic_threshold_type="phi"}, this acts as a threshold on \eqn{\phi_\epsilon(w_\mathrm{eff})} (typically in (0,1)). If \code{sic_threshold_type="abs"}, it's an absolute threshold on the unpenalized weight directly.
 #' @param sic_threshold_type character, either \code{"phi"} (default) or \code{"abs"}.
 #' @param sic_report_epsilon character, either \code{"current"} or \code{"final"}:
@@ -67,6 +68,8 @@ train_SICNN <- function(epochs,
                         device = "cpu",
                         scheduler = NULL,
                         sch_step_size = NULL,
+                        sch_milestones = NULL,
+                        sch_gamma = 0.1,
                         n_train = NULL,
                         epsilon_1 = 10,
                         epsilon_T = 1e-5,
@@ -108,12 +111,27 @@ train_SICNN <- function(epochs,
   SICNN$sic_report_threshold_type <- sic_threshold_type
   SICNN$sic_penalty <- sic_penalty
   SICNN$n_train <- n_train
-  opt <- torch::optim_adam(SICNN$parameters,lr = lr)
-  if(! is.null(scheduler)){
-    if(scheduler == 'step'){
-      sl <- torch::lr_step(opt,step_size = sch_step_size,gamma = 0.1)
+  make_lr_scheduler <- function(opt) {
+    if (is.null(scheduler)) return(NULL)
+    if (scheduler == "step") {
+      return(torch::lr_step(opt, step_size = sch_step_size, gamma = sch_gamma))
     }
+    if (scheduler == "multi_step") {
+      milestones <- sch_milestones
+      if (is.null(milestones)) milestones <- c(0.3, 0.5, 0.7, 0.9)
+      milestones <- as.numeric(milestones)
+      if (any(milestones > 0 & milestones < 1)) {
+        milestones <- ifelse(milestones > 0 & milestones < 1, milestones * epochs, milestones)
+      }
+      milestones <- sort(unique(as.integer(round(milestones))))
+      lr_lambda <- function(epoch) sch_gamma ^ sum(epoch >= milestones)
+      return(torch::lr_lambda(opt, lr_lambda = lr_lambda))
+    }
+    stop("scheduler must be NULL, 'step', or 'multi_step'")
   }
+
+  opt <- torch::optim_adam(SICNN$parameters, lr = lr)
+  sl <- make_lr_scheduler(opt)
   
   SICNN$elapsed_time <- 0
   start <- base::proc.time()
@@ -138,11 +156,7 @@ train_SICNN <- function(epochs,
       }
       apply_sic_mask(SICNN$out_layer, p)
       opt <- torch::optim_adam(SICNN$parameters, lr = lr)
-      if(!is.null(scheduler)){
-        if(scheduler == 'step'){
-          sl <- torch::lr_step(opt,step_size = sch_step_size,gamma = 0.1)
-        }
-      }
+      sl <- make_lr_scheduler(opt)
     }
     
     accs <- c()
@@ -172,6 +186,8 @@ train_SICNN <- function(epochs,
     idx <- min(steps_T, max(1, ceiling(epoch * steps_T/epochs)))
     epsilon <- eps_seq[idx]
     epsilon_report <- if (sic_report_epsilon == "final") epsilon_T else epsilon
+    # Reporting uses the final-epsilon count but does not affect gradients.
+    report_smooth_count <- SICNN$smooth_param_count(SICNN$sic_epsilon_T)$detach()$item()
     # use coro::loop() for stability and performance
     coro::loop(for (b in train_dl) {
 
@@ -192,21 +208,20 @@ train_SICNN <- function(epochs,
       data_loss <- SICNN$loss_fn(output, target)
       
       # ---- SIC-consistent loss scaling ----
-      # SIC = -2*loglik + penalty*k  (on the -2ℓ scale).
-      # MSE with reduction='sum' gives Σ(y-ŷ)² ∝ -2ℓ  (nll_scale = 1)
-      # BCE/NLL with reduction='sum' gives -ℓ            (nll_scale = 2)
-      # Mini-batch covers batch_n < n samples, so scale to full-sample level.
+      # The objective is -2*loglik + penalty*k on the -2 ell scale.
+      # The profile-Gaussian regression term is already on that scale.
+      # Summed BCE/NLL is -ell, so native classification terms need a factor of 2.
+      # Mini-batch losses are rescaled to the nominal full training-sample size.
       batch_n <- dim(data)[1]
       if (SICNN$problem_type == 'regression') {
         # Gaussian log-lik with estimated variance as in linear regression BIC:
-        # -2ℓ \approx n*log(RSS/n) = n*log(MSE)
+        # -2â„“ \approx n*log(RSS/n) = n*log(MSE)
         mse_est <- data_loss / batch_n
         # add tiny epsilon to log to prevent negative infinity
         data_loss_scaled <- n_train * torch::torch_log(mse_est + 1e-12)
       } else {
-        # For logistic/multiclass, loss is already -loglik (per-sample if reduction='mean', but here it's 'sum').
-        # Scaling sum-loss from batch to n_train:
-        data_loss_scaled <- (n_train / batch_n) * data_loss
+        # Native BCE/NLL is summed -loglik; multiply by two for the BIC scale.
+        data_loss_scaled <- 2 * (n_train / batch_n) * data_loss
       }
       
       k_smooth <- SICNN$smooth_param_count(epsilon)
@@ -214,9 +229,9 @@ train_SICNN <- function(epochs,
       
       # Reporting loss: same logic but evaluated at final epsilon_T
       if (SICNN$problem_type == 'regression') {
-        loss_report <- n_train * (torch::torch_log(data_loss / batch_n + 1e-12)$item()) + sic_penalty * SICNN$smooth_param_count(SICNN$sic_epsilon_T)$item()
+        loss_report <- n_train * (torch::torch_log(data_loss / batch_n + 1e-12)$item()) + sic_penalty * report_smooth_count
       } else {
-        loss_report <- (n_train / batch_n) * data_loss$item() + sic_penalty * SICNN$smooth_param_count(SICNN$sic_epsilon_T)$item()
+        loss_report <- 2 * (n_train / batch_n) * data_loss$item() + sic_penalty * report_smooth_count
       }
     
       
@@ -266,8 +281,8 @@ train_SICNN <- function(epochs,
       density_val <- as.numeric(sic_counts["active"] / sic_counts["total"])
       sparsity_val <- as.numeric(sic_counts["removed"] / sic_counts["total"]) * 100
       message(sprintf(
-        "\nEpoch %d, training: loss = %3.5f, acc = %3.5f, density = %3.5f, sparsity = %3.2f%%",
-        epoch, mean(train_loss), train_acc, density_val, sparsity_val
+        "\nEpoch %d, training: epsilon = %.3e, loss = %3.5f, acc = %3.5f, density = %3.5f, sparsity = %3.2f%%",
+        epoch, epsilon, mean(train_loss), train_acc, density_val, sparsity_val
       ))
       
       
@@ -281,8 +296,8 @@ train_SICNN <- function(epochs,
       density_val <- as.numeric(sic_counts["active"] / sic_counts["total"])
       sparsity_val <- as.numeric(sic_counts["removed"] / sic_counts["total"]) * 100
       message(sprintf(
-        "\nEpoch %d, training: loss = %3.5f, R2 = %3.5f, density = %3.5f, sparsity = %3.2f%% \n",
-        epoch, mean(train_loss), r2, density_val, sparsity_val
+        "\nEpoch %d, training: epsilon = %.3e, loss = %3.5f, R2 = %3.5f, density = %3.5f, sparsity = %3.2f%% \n",
+        epoch, epsilon, mean(train_loss), r2, density_val, sparsity_val
       ))
       
       losses <- c(losses,mean(train_loss))
