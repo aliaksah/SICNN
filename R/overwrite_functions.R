@@ -1,7 +1,7 @@
 library(Matrix)
 require(graphics)
 
-#' @title Function that checks how many times inputs are included, and from which layer. Used in summary function.
+#' @title Count active input connections by layer
 #' @description Useful when the number of inputs and/or hidden neurons are very
 #' large, and direct visualization of the network is difficult.
 #' @param model An instance of \code{SICNN_Net} where \code{input_skip = TRUE}.
@@ -9,7 +9,7 @@ require(graphics)
 #' and L the total number of layers (including input and output), with each element being 1 if the variable is included
 #' or 0 if not included.
 #' @keywords internal
-get_input_inclusions <- function(model) {
+get_input_active_counts <- function(model) {
   if (model$input_skip == FALSE) (stop("This function is currently only implemented for input-skip"))
   x_names <- c()
   layer_names <- c()
@@ -21,10 +21,10 @@ get_input_inclusions <- function(model) {
   }
 
 
-  inclusion_matrix <- matrix(0, nrow = model$sizes[1], ncol = length(model$sizes) - 1)
+  active_count_matrix <- matrix(0, nrow = model$sizes[1], ncol = length(model$sizes) - 1)
   # add the names
-  colnames(inclusion_matrix) <- layer_names
-  rownames(inclusion_matrix) <- x_names
+  colnames(active_count_matrix) <- layer_names
+  rownames(active_count_matrix) <- x_names
 
 
   inp_size <- model$sizes[1]
@@ -32,15 +32,15 @@ get_input_inclusions <- function(model) {
   for (l in model$layers$children) {
     alp <- l$alpha_active_path
     incl <- as.numeric(torch::torch_sum(alp[, -inp_size:dim(alp)[2]], dim = 1))
-    inclusion_matrix[, i] <- incl
+    active_count_matrix[, i] <- incl
     i <- i + 1
   }
   alp_out <- model$out_layer$alpha_active_path
   incl <- as.numeric(torch::torch_sum(alp_out[, -inp_size:dim(alp_out)[2]], dim = 1))
-  inclusion_matrix[, i] <- incl
+  active_count_matrix[, i] <- incl
   i <- i + 1
 
-  return(inclusion_matrix)
+  return(active_count_matrix)
 }
 
 
@@ -54,9 +54,9 @@ get_input_inclusions <- function(model) {
 #' @details
 #' The returned table combines two types of information:
 #' \itemize{
-#'   \item Number of times each input variable is included in the active paths from each layer
-#'         (obtained from \code{get_input_inclusions()}).
-#'   \item Average inclusion probabilities for each input variable from each layer, including a final
+#'   \item Number of active edges from each input variable in each layer.
+
+#'   \item Proportion of active edges from each input variable in each layer, including a final
 #'         column showing the average across all layers.
 #' }
 #' @return A \code{data.frame} containing the above information. The function prints a formatted summary to the console.
@@ -372,71 +372,41 @@ coef.SICNN_Net <- function(object, dataset, inds = NULL, output_neuron = 1, num_
 }
 
 
-#' @title Obtain predictions from the variational posterior of an \code{SICNN model}
-#' @description Draw from the (variational) posterior distribution of a trained \code{SICNN_Net} object.
-#' @param object A trained \code{SICNN_Net} object
-#' @param mpm logical, whether to use the median probability model.
+#' @title Obtain deterministic predictions from an \code{SICNN} model
+#' @description Compute predictions from a trained \code{SICNN_Net} object.
+#' @param object A trained \code{SICNN_Net} object.
 #' @param newdata A \code{torch::dataloader} object containing the data with which to predict.
-#' @param draws integer, the number of samples to draw from the posterior.
+#' @param sparse logical, whether to use the thresholded active-path model.
 #' @param device character, device for computation (default = \code{"cpu"}).
-#' @param link Optional link function to apply to the network output. Currently not implemented.
 #' @param ... further arguments passed to or from other methods.
-#' @return A \code{torch::torch_tensor}  of shape \code{(draws,N,C)} where \code{N} is the number of samples in \code{newdata}, and \code{C} the number of outputs.
-#' @examples
-#' \donttest{
-#' x <- torch::torch_randn(3, 2)
-#' b <- torch::torch_rand(2)
-#' y <- torch::torch_matmul(x, b)
-#' train_data <- torch::tensor_dataset(x, y)
-#' train_loader <- torch::dataloader(train_data, batch_size = 3, shuffle = FALSE)
-#' problem <- "regression"
-#' sizes <- c(2, 1, 1)
-#' model <- SICNN_Net(problem, sizes, input_skip = TRUE)
-#' train_SICNN(epochs = 1, SICNN = model, lr = 0.01, train_dl = train_loader, n_train = 3)
-#' predict(model, mpm = FALSE, newdata = train_loader, draws = 1)
-#' }
+#' @return A \code{torch::torch_tensor} of shape \code{(N,C)}.
 #' @export
-predict.SICNN_Net <- function(object, newdata, mpm = FALSE, draws = 10, device = "cpu", link = NULL, ...) { # should newdata be a dataloader or a dataset?
+predict.SICNN_Net <- function(object, newdata, sparse = FALSE, device = "cpu", ...) {
   object$eval()
-  object$raw_output <- TRUE # skip final sigmoid/softmax
-  if (!object$computed_paths) {
+  if (sparse && !object$computed_paths) {
     if (object$input_skip) {
-      if (!is.null(object$criterion_trained) && object$criterion_trained == "SIC") {
-        object$compute_paths_input_skip(epsilon = object$sic_epsilon_T, threshold = object$sic_threshold)
-      } else {
-        object$compute_paths_input_skip()
-      }
+      object$compute_paths_input_skip(epsilon = object$sic_epsilon_T, threshold = object$sic_threshold)
     } else {
-      if (!is.null(object$criterion_trained) && object$criterion_trained == "SIC") {
-        object$compute_paths(epsilon = object$sic_epsilon_T, threshold = object$sic_threshold)
-      } else {
-        object$compute_paths()
-      }
+      object$compute_paths(epsilon = object$sic_epsilon_T, threshold = object$sic_threshold)
     }
   }
-  if (class(newdata)[[1]] != "dataloader") stop("Currently only torch::dataloader objects are supported for newdata")
-  out_shape <- object$sizes[length(object$sizes)] # number of output neurons
+  if (class(newdata)[[1]] != "dataloader") stop("newdata must be a torch::dataloader object")
   all_outs <- NULL
   torch::with_no_grad({
     coro::loop(for (b in newdata) {
-      outputs <- torch::torch_zeros(draws, dim(b[[1]])[1], out_shape)$to(device = device)
-      for (i in 1:draws) {
-        data <- b[[1]]$to(device = device)
-        outputs[i] <- object(data, sparse = mpm)
-      }
-      all_outs <- torch::torch_cat(c(all_outs, outputs), dim = 2) # add all the mini-batches together
+      outputs <- object(b[[1]]$to(device = device), sparse = sparse)
+      all_outs <- torch::torch_cat(c(all_outs, outputs), dim = 1)
     })
   })
-  return(all_outs)
+  all_outs
 }
-
 
 #' @title Print summary of an \code{SICNN_Net} object
 #' @description
 #' Provides a summary of a trained \code{SICNN_Net} object.
-#' Includes the model type (input-skip or not), whether normalizing flows
-#' are used, module and sub-module structure, number of trainable parameters, and prior
-#' variance and inclusion probabilities for the weights.
+#' Includes the model type (input-skip or not), module and sub-module structure,
+#' and number of trainable parameters.
+
 #' @param x An object of class \code{SICNN_Net}.
 #' @param ... Further arguments passed to or from other methods.
 #' @return Invisibly returns the input \code{x}.
@@ -461,12 +431,6 @@ print.SICNN_Net <- function(x, ...) {
     "SICNN with input-skip"
   } else {
     "SICNN without input-skip"
-  }
-
-  flow <- if (isTRUE(x$flow)) {
-    "with normalizing flows"
-  } else {
-    "without normalizing flows"
   }
 
   # Header
@@ -496,18 +460,8 @@ print.SICNN_Net <- function(x, ...) {
   # Model details
   cat("\nModel Configuration:\n")
   cat("  -", model_name, "\n")
-  cat("  - Optimized using variational inference", flow, "\n\n")
-
-  # Priors
-  cat("Priors:\n")
-  cat(
-    "  - Prior inclusion probabilities per layer: ",
-    paste(x$prior_inclusion, collapse = ", "), "\n"
-  )
-  cat(
-    "  - Prior std dev for weights per layer:    ",
-    paste(x$prior_std, collapse = ", "), "\n"
-  )
+  cat("  - Optimized with a smooth information-criterion objective\n")
+  if (!is.null(x$sic_penalty)) cat("  - SIC penalty coefficient:", x$sic_penalty, "\n")
 
   cat("\n=================================================================\n\n")
   invisible(x)

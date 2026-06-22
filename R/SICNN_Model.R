@@ -1,6 +1,6 @@
 library(torch)
 
-#' @title Feed-forward Latent Binary Bayesian Neural Network (SICNN)
+#' @title Feed-forward Smooth Information Criterion Neural Network (SICNN)
 #' @description
 #' Each layer is defined by \code{SICNN_Linear}. 
 #' For example, \code{sizes = c(20, 200, 200, 5)} generates a network with:
@@ -33,9 +33,9 @@ library(torch)
 #'   It includes the following methods:
 #'   \itemize{
 #'     \item \code{forward(x, sparse = FALSE)}: Performs a forward pass through the whole network.
-#'     \item \code{kl_div()}: Returns the KL divergence of the network.
-#'     \item \code{density()}: Returns the density of the whole network, i.e. the proportion of weights
-#'     with inclusion probabilities greater than 0.5.
+#'     \item \code{sic_density(epsilon, threshold)}: Returns the proportion of weights
+#'     classified as active by the SIC threshold rule.
+
 #'     \item \code{compute_paths()}: Computes active paths through the network without input-skip. 
 #'     \item \code{compute_paths_input_skip()}: Computes active paths with  input-skip enabled. 
 #'     \item \code{density_active_path()}: Returns network density after removing inactive paths.
@@ -142,11 +142,11 @@ SICNN_Net <- torch::nn_module(
     },
   smooth_param_count = function(epsilon){
     # Smooth approximation to the number of effective parameters used in SIC.
-    # In this architecture, the effective coefficient for each edge is
-    #   w_eff = weight_mean * alpha_soft
-    # where alpha_soft = sigmoid(lambda_l). We apply the smooth L0 surrogate
-    #  phi_epsilon(w) = w^2 / (w^2 + epsilon^2)
-    # to w_eff, consistent with the coefficient being regularized.
+    # The trainable coefficient for each edge is weight_mean. Apply the smooth
+    # L0 surrogate phi_epsilon(w) = w^2 / (w^2 + epsilon^2) directly to it.
+
+
+
     if(missing(epsilon) || !is.numeric(epsilon) || length(epsilon) != 1 || epsilon <= 0){
       stop("epsilon must be a positive numeric scalar")
     }

@@ -353,8 +353,8 @@ train_SICNN <- function(epochs,
 #'     \item{accuracy_sparse}{Classification accuracy using only weights in active paths (if classification).}
 #'     \item{validation_error}{Root mean squared error for the full model (if regression).}
 #'     \item{validation_error_sparse}{Root mean squared error using only weights in active paths (if regression).}
-#'     \item{density}{Proportion of weights with posterior inclusion probability > 0.5 in the whole network.}
-#'     \item{density_active_path}{Proportion of weights with inclusion probability > 0.5 after removing weights not in active paths.}
+#'     \item{density}{Proportion of weights classified as active by the SIC threshold rule.}
+#'     \item{density_active_path}{Proportion of weights classified as active after removing edges outside active paths.}
 #'   }     
 #' @param ... further arguments passed to or from other methods.
 #' @export
@@ -366,7 +366,7 @@ validate_SICNN <- function(SICNN, test_dl, device = 'cpu', ...){
   corrects_sparse <-0
   totals <- 0 
   val_loss <- c()
-  val_loss_mpm <-c()
+  val_loss_sparse <-c()
   out_shape <- 1 #if binary classification or regression
   thr_type <- if(!is.null(SICNN$sic_report_threshold_type)) SICNN$sic_report_threshold_type else "phi"
   if (SICNN$input_skip) {
@@ -392,7 +392,7 @@ validate_SICNN <- function(SICNN, test_dl, device = 'cpu', ...){
       }
       data <- b[[1]]$to(device = device)
       out_full <- SICNN(data, sparse = FALSE)
-      out_mpm  <- SICNN(data, sparse = TRUE)
+      out_sparse  <- SICNN(data, sparse = TRUE)
       
       if(SICNN$problem_type == 'multiclass classification' | SICNN$problem_type == 'MNIST'){
         prediction <-max.col(out_full)
@@ -400,27 +400,27 @@ validate_SICNN <- function(SICNN, test_dl, device = 'cpu', ...){
         totals <- totals + length(target)
         
         #prediction using only weights in active paths
-        prediction_mpm <-max.col(out_mpm)
-        corrects_sparse <- corrects_sparse + sum(prediction_mpm == target)
+        prediction_sparse <-max.col(out_sparse)
+        corrects_sparse <- corrects_sparse + sum(prediction_sparse == target)
         
         
       }
       
       else if(SICNN$problem_type == 'binary classification'){
         out_full <- out_full$squeeze()
-        out_mpm <-out_mpm$squeeze()
+        out_sparse <-out_sparse$squeeze()
         corrects<-corrects + sum((out_full > 0.5) == target)
-        corrects_sparse<-corrects_sparse + sum((out_mpm > 0.5) == target)
+        corrects_sparse<-corrects_sparse + sum((out_sparse > 0.5) == target)
         totals <- totals + length(target)
       }
       else{#for regression
         out_full <- out_full$squeeze()
-        out_mpm <-out_mpm$squeeze()
+        out_sparse <-out_sparse$squeeze()
         
         loss <- torch::torch_sqrt(torch::nnf_mse_loss(out_full, target))
-        loss_mpm <- torch::torch_sqrt(torch::nnf_mse_loss(out_mpm, target))
+        loss_sparse <- torch::torch_sqrt(torch::nnf_mse_loss(out_sparse, target))
         val_loss <- c(val_loss,loss$item())
-        val_loss_mpm <- c(val_loss_mpm,loss_mpm$item())
+        val_loss_sparse <- c(val_loss_sparse,loss_sparse$item())
       }
       
       
@@ -461,7 +461,7 @@ validate_SICNN <- function(SICNN, test_dl, device = 'cpu', ...){
   }
   else{
     l = list('validation_error'=mean(val_loss),
-             'validation_error_sparse' = mean(val_loss_mpm),
+             'validation_error_sparse' = mean(val_loss_sparse),
              'density'=density,
              'density_active_path'=density2)
     if(!is.null(SICNN$criterion_trained) && SICNN$criterion_trained == "SIC"){

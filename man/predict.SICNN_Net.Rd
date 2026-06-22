@@ -2,50 +2,24 @@
 % Please edit documentation in R/overwrite_functions.R
 \name{predict.SICNN_Net}
 \alias{predict.SICNN_Net}
-\title{Obtain predictions from the variational posterior of an \code{SICNN model}}
+\title{Obtain deterministic predictions from an \code{SICNN} model}
 \usage{
-\method{predict}{SICNN_Net}(
-  object,
-  newdata,
-  mpm = FALSE,
-  draws = 10,
-  device = "cpu",
-  link = NULL,
-  ...
-)
+\method{predict}{SICNN_Net}(object, newdata, sparse = FALSE, device = "cpu", ...)
 }
 \arguments{
-\item{object}{A trained \code{SICNN_Net} object}
+\item{object}{A trained \code{SICNN_Net} object.}
 
 \item{newdata}{A \code{torch::dataloader} object containing the data with which to predict.}
 
-\item{mpm}{logical, whether to use the median probability model.}
-
-\item{draws}{integer, the number of samples to draw from the posterior.}
+\item{sparse}{logical, whether to use the thresholded active-path model.}
 
 \item{device}{character, device for computation (default = \code{"cpu"}).}
-
-\item{link}{Optional link function to apply to the network output. Currently not implemented.}
 
 \item{...}{further arguments passed to or from other methods.}
 }
 \value{
-A \code{torch::torch_tensor}  of shape \code{(draws,N,C)} where \code{N} is the number of samples in \code{newdata}, and \code{C} the number of outputs.
+A \code{torch::torch_tensor} of shape \code{(N,C)}.
 }
 \description{
-Draw from the (variational) posterior distribution of a trained \code{SICNN_Net} object.
-}
-\examples{
-\donttest{
-x <- torch::torch_randn(3, 2)
-b <- torch::torch_rand(2)
-y <- torch::torch_matmul(x, b)
-train_data <- torch::tensor_dataset(x, y)
-train_loader <- torch::dataloader(train_data, batch_size = 3, shuffle = FALSE)
-problem <- "regression"
-sizes <- c(2, 1, 1)
-model <- SICNN_Net(problem, sizes, input_skip = TRUE)
-train_SICNN(epochs = 1, SICNN = model, lr = 0.01, train_dl = train_loader, n_train = 3)
-predict(model, mpm = FALSE, newdata = train_loader, draws = 1)
-}
+Compute predictions from a trained \code{SICNN_Net} object.
 }

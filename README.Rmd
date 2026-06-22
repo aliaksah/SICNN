@@ -21,7 +21,7 @@ knitr::opts_chunk$set(
 
 <!-- badges: end -->
 
-The goal of SICNN is to implement Smooth Information Criterion Neural Networks in R, using the torch package. SICNN is a scalable architecture designed exclusively for seamless, continuous parameter space pruning. Evolved from Latent Binary Bayesian Neural Networks (LBBNNs) described in Hubin and Storvik (2024) [doi:10.3390/math12060788](https://doi.org/10.3390/math12060788) and implemented in the [LBBNN](https://CRAN.R-project.org/package=LBBNN) R package, SICNN operates dynamically and directly on model weight structures by natively leveraging a continuous smooth approximation of the $L_0$ norm.
+SICNN implements Smooth Information Criterion Neural Networks in R using the torch package. It is a deterministic, frequentist neural-network framework for continuous parameter-space pruning, applying a smooth approximation of the $L_0$ norm directly to trainable weights.
 
 ## Installation
 
@@ -82,7 +82,7 @@ results_input_skip <- suppressMessages(train_SICNN(
 Evaluate structural performance and accuracy on validation samples natively:
 
 ```{r}
-validate_SICNN(SICNN = model_input_skip, num_samples = 1, test_dl = test_loader, device = device)
+validate_SICNN(SICNN = model_input_skip, test_dl = test_loader, device = device)
 ```
 
 Plot the global interconnected sparse structure of the active model pathways:

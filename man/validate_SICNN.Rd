@@ -22,8 +22,8 @@ A list containing the following elements:
 \item{accuracy_sparse}{Classification accuracy using only weights in active paths (if classification).}
 \item{validation_error}{Root mean squared error for the full model (if regression).}
 \item{validation_error_sparse}{Root mean squared error using only weights in active paths (if regression).}
-\item{density}{Proportion of weights with posterior inclusion probability > 0.5 in the whole network.}
-\item{density_active_path}{Proportion of weights with inclusion probability > 0.5 after removing weights not in active paths.}
+\item{density}{Proportion of weights classified as active by the SIC threshold rule.}
+\item{density_active_path}{Proportion of weights classified as active after removing edges outside active paths.}
 }
 }
 \description{

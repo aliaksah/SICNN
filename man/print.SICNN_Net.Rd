@@ -16,9 +16,8 @@ Invisibly returns the input \code{x}.
 }
 \description{
 Provides a summary of a trained \code{SICNN_Net} object.
-Includes the model type (input-skip or not), whether normalizing flows
-are used, module and sub-module structure, number of trainable parameters, and prior
-variance and inclusion probabilities for the weights.
+Includes the model type (input-skip or not), module and sub-module structure,
+and number of trainable parameters.
 }
 \examples{
 \donttest{

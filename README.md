@@ -14,16 +14,10 @@ MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 <!-- badges: end -->
 
-The goal of SICNN is to implement Smooth Information Criterion Neural
-Networks in R, using the torch package. SICNN is a scalable architecture
-designed exclusively for seamless, continuous parameter space pruning.
-Evolved from Latent Binary Bayesian Neural Networks (LBBNNs) described
-in Hubin and Storvik (2024)
-[doi:10.3390/math12060788](https://doi.org/10.3390/math12060788) and
-implemented in the [LBBNN](https://CRAN.R-project.org/package=LBBNN) R
-package, SICNN operates dynamically and directly on model weight
-structures by natively leveraging a continuous smooth approximation of
-the $L_0$ norm.
+SICNN implements Smooth Information Criterion Neural Networks in R using the
+torch package. It is a deterministic, frequentist neural-network framework for
+continuous parameter-space pruning, applying a smooth approximation of the
+$L_0$ norm directly to trainable weights.
 
 ## Installation
 
@@ -139,7 +133,7 @@ plot(model_input_skip, type = "local", data = data)
 
 ## Uncertainty Quantification for Local Explanations
 
-SICNN supports LBBNN-style uncertainty for local explanations using the Delta method. This allows you to compute confidence intervals for the contribution of each feature to a specific prediction by approximating the weight covariance matrix via the Fisher Information (diagonal or block-diagonal).
+SICNN supports frequentist uncertainty quantification for local explanations using the Delta method. This allows you to compute confidence intervals for the contribution of each feature to a specific prediction by approximating the weight covariance matrix via the Fisher Information (diagonal or block-diagonal).
 
 ``` r
 # Compute local explanation with uncertainty using block-diagonal Fisher Information on the test set

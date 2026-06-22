@@ -2,7 +2,7 @@
 % Please edit documentation in R/SICNN_Model.R
 \name{SICNN_Net}
 \alias{SICNN_Net}
-\title{Feed-forward Latent Binary Bayesian Neural Network (SICNN)}
+\title{Feed-forward Smooth Information Criterion Neural Network (SICNN)}
 \usage{
 SICNN_Net(
   problem_type,
@@ -42,9 +42,8 @@ A \code{torch::nn_module} object representing the SICNN.
 It includes the following methods:
 \itemize{
 \item \code{forward(x, sparse = FALSE)}: Performs a forward pass through the whole network.
-\item \code{kl_div()}: Returns the KL divergence of the network.
-\item \code{density()}: Returns the density of the whole network, i.e. the proportion of weights
-with inclusion probabilities greater than 0.5.
+\item \code{sic_density(epsilon, threshold)}: Returns the proportion of weights
+classified as active by the SIC threshold rule.
 \item \code{compute_paths()}: Computes active paths through the network without input-skip.
 \item \code{compute_paths_input_skip()}: Computes active paths with  input-skip enabled.
 \item \code{density_active_path()}: Returns network density after removing inactive paths.

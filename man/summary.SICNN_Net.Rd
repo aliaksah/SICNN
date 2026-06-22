@@ -26,9 +26,8 @@ Only applies to objects trained with \code{input_skip = TRUE}.
 \details{
 The returned table combines two types of information:
 \itemize{
-\item Number of times each input variable is included in the active paths from each layer
-(obtained from \code{get_input_inclusions()}).
-\item Average inclusion probabilities for each input variable from each layer, including a final
+\item Number of active edges from each input variable in each layer.
+\item Proportion of active edges from each input variable in each layer, including a final
 column showing the average across all layers.
 }
 }

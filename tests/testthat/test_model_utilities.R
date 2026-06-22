@@ -35,6 +35,6 @@ test_that("SICNN_Net S3 utilities work", {
   expect_true(is.data.frame(expl))
   
   # predict
-  preds <- predict(model, newdata = train_loader, draws = 2)
-  expect_equal(dim(preds), c(2, 5, 1))
+  preds <- predict(model, newdata = train_loader)
+  expect_equal(dim(preds), c(5, 1))
 })
